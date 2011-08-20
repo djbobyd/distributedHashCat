@@ -33,12 +33,13 @@ about the submissions made--again, see submitMaster.
 import os, sys, time, yaml,logging.config
 from listQueue import listQueue
 from HashCat import SSHController, results
+from multiprocessing import Process, Pipe
 
-config = yaml.load(open('log.yml', 'r'))
+config = yaml.load(open(os.path.join(os.path.dirname(__file__),'log.yml'), 'r'))
 logging.config.dictConfig(config)
 log = logging.getLogger('distributor')
 
-stream = file('../distributedPython/config.yml', 'r')
+stream = file('config.yml', 'r')
 config = yaml.load(stream)
 
 #My computer list, should be able to ssh to without a password.
@@ -62,7 +63,7 @@ class Job(object):
 
     def poll(self):
         #return None for testing
-        if not self.sshController.isAlive():
+        if not self.sshController.is_alive():
             self.checkStatus()
             return False
         else:
@@ -143,9 +144,10 @@ class JobDistributor(object):
         hostInfo = self.getHostfromList(host)
         res = results()
         HC = SSHController(hostInfo["name"],hostInfo["user"],hostInfo["pass"], command, res)
-        HC.start()
+        p = Process(target=HC,args=())
+        p.start()
         log.info('Submited to ' + host + ': ' + command)
-        self.processes[host].append(Job(HC,res,self.status))
+        self.processes[host].append(Job(p,res,self.status))
         self.totalJobs += 1
 
     def getHost(self):
