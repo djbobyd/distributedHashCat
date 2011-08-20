@@ -41,7 +41,7 @@ class SSHController():
     @ivar ssh: Instance of a paramiko.SSHClient object
     """
         
-    def __init__(self, host_name, user_name, password,command='',results=None):
+    def __init__(self, host_name, user_name, password,command='',result={}):
         """
         @param host_name: Host name or IP address
         @param user_name: User name 
@@ -50,7 +50,8 @@ class SSHController():
         @param results: A list that will contain the results once this thread is completed.
          
         """  
-        self.results=results
+        self.queue=result
+        self.results=results()
         self.host_name = host_name
         self.user_name = user_name
         self.password = password
@@ -68,6 +69,11 @@ class SSHController():
         self.be_alive = False
         self.aborted = False
         self.last_output= ''
+        self.command_xcode=''
+
+    def get_command_xcode(self):
+        return self.command_xcode
+
     
     def __str__(self) :
         #return str(self.__dict__)
@@ -88,12 +94,14 @@ class SSHController():
         self.login()
         self.run_command(self.command)
         self.ping()
-        self.logout()
         self.fill_results()
+        self.logout()
         
     def fill_results(self):
         if self.results <> None:
+            log.debug("Filling results in the provided results instance...")
             self.results.set_host_name(self.host_name)
+            self.results.set_command_xcode(self.command_xcode)
             self.results.set_user_name(self.user_name)
             self.results.set_password(self.password)
             self.results.set_command(self.command) 
@@ -104,7 +112,8 @@ class SSHController():
             self.results.set_be_alive(self.be_alive)
             self.results.set_aborted(self.aborted)
             self.results.set_last_output(self.last_output)
-        
+            self.queue.put(self.results)
+              
     def login(self):
         """Connect to a remote host and login.
             
@@ -112,11 +121,11 @@ class SSHController():
         #self.ssh.load_system_host_keys()
         #self.ssh.set_missing_host_key_policy(paramiko.WarningPolicy)
         log.debug("Making connection to remote host: %s with user: %s" % (self.host_name, self.user_name))
-        self.connection = self.ssh.connect(self.host_name,self.port, self.user_name, self.password)
+        self.connection = self.ssh.connect(self.host_name,self.port, self.user_name, self.password, timeout=5)
         log.debug("Starting Shell!")
         self.chan = self.ssh.invoke_shell()
         log.debug("Connection established!")
-
+    
     def run_command(self, command):
         """Run a command on the remote host.
             
@@ -136,7 +145,8 @@ class SSHController():
     def check_host(self):
         try:
             log.debug("Making connection to remote host: %s with user: %s" % (self.host_name, self.user_name))
-            self.connection = self.ssh.connect(self.host_name,self.port, self.user_name, self.password)
+            
+            self.connection = self.ssh.connect(self.host_name,self.port, self.user_name, self.password, timeout=5)
             log.debug("Starting Shell!")
             self.chan = self.ssh.invoke_shell()
             self.ssh.close()
@@ -189,13 +199,30 @@ class SSHController():
             if line.startswith("Time.Left."):
                 self.estimated_time=line.split(":")[1].strip()
                 continue
-            if [True for i in ["$ ","$ s","# ","# s","ss"] if lines.endswith(i)]:
+            if [True for i in ["$ ","$ s","# ","# s","ss"] if line.endswith(i)]:
                 self.last_output=line_arr
                 self.be_alive=False
+                self.evaluate_xcode()
                 continue
             log.warning("Line cannot be recognized: %s" % line)
                 
-
+    def evaluate_xcode(self):
+        lines=''
+        command="echo $?"
+        self.write_proc("\b"*10)
+        log.debug("sending command: '%s' to host" % command)
+        self.chan.send(command+'\n')
+        while not [True for i in ["=> ","$ ","$ s","# ","# s","ss"] if lines.endswith(i)]:
+            if self.chan.recv_ready():
+                line=self.chan.recv(9999)
+                lines=lines+''.join(line)
+        log.debug("Exit Code Line: %s" % lines)
+        line_arr=lines.splitlines()
+        try:
+            self.command_xcode=int(line_arr[1])
+        except:
+            log.exception("Line: %s - does not contain an integer value!!!" % line_arr[1])
+        log.debug("Exit Code is: %d" % self.command_xcode)
     
     def stop_proc(self):
         log.info("Sending stop command to process...")
@@ -258,158 +285,90 @@ class switch(object):
 class results():
 
         def get_host_name(self):
-            return self.__host_name
+            return self.host_name
 
+        def get_command_xcode(self):
+            return self.command_xcode
 
         def get_user_name(self):
-            return self.__user_name
-
+            return self.user_name
 
         def get_password(self):
-            return self.__password
-
+            return self.password
 
         def get_command(self):
-            return self.__command
-
+            return self.command
 
         def get_status(self):
-            return self.__status
-
+            return self.status
 
         def get_progress(self):
-            return self.__progress
-
+            return self.progress
 
         def get_elapsed_time(self):
-            return self.__elapsed_time
-
+            return self.elapsed_time
 
         def get_estimated_time(self):
-            return self.__estimated_time
-
+            return self.estimated_time
 
         def get_be_alive(self):
-            return self.__be_alive
-
+            return self.be_alive
 
         def get_aborted(self):
-            return self.__aborted
-
+            return self.aborted
 
         def get_last_output(self):
-            return self.__last_output
-
+            return self.last_output
 
         def set_host_name(self, value):
-            self.__host_name = value
+            self.host_name = value
 
+        def set_command_xcode(self, value):
+            self.command_xcode = value
 
         def set_user_name(self, value):
-            self.__user_name = value
-
+            self.user_name = value
 
         def set_password(self, value):
-            self.__password = value
-
+            self.password = value
 
         def set_command(self, value):
-            self.__command = value
-
+            self.command = value
 
         def set_status(self, value):
-            self.__status = value
-
+            self.status = value
 
         def set_progress(self, value):
-            self.__progress = value
-
+            self.progress = value
 
         def set_elapsed_time(self, value):
-            self.__elapsed_time = value
-
+            self.elapsed_time = value
 
         def set_estimated_time(self, value):
-            self.__estimated_time = value
-
+            self.estimated_time = value
 
         def set_be_alive(self, value):
-            self.__be_alive = value
-
+            self.be_alive = value
 
         def set_aborted(self, value):
-            self.__aborted = value
-
+            self.aborted = value
 
         def set_last_output(self, value):
-            self.__last_output = value
+            self.last_output = value
 
-
-        def del_host_name(self):
-            del self.__host_name
-
-
-        def del_user_name(self):
-            del self.__user_name
-
-
-        def del_password(self):
-            del self.__password
-
-
-        def del_command(self):
-            del self.__command
-
-
-        def del_status(self):
-            del self.__status
-
-
-        def del_progress(self):
-            del self.__progress
-
-
-        def del_elapsed_time(self):
-            del self.__elapsed_time
-
-
-        def del_estimated_time(self):
-            del self.__estimated_time
-
-
-        def del_be_alive(self):
-            del self.__be_alive
-
-
-        def del_aborted(self):
-            del self.__aborted
-
-
-        def del_last_output(self):
-            del self.__last_output
-
-        host_name = ''
-        user_name = ''
-        password = ''
-        command = ''
-        status = ''
-        progress = ''
-        elapsed_time = ''
-        estimated_time = ''
-        be_alive = None
-        aborted = None
-        last_output = ''
-        host_name = property(get_host_name, set_host_name, del_host_name, "host_name's docstring")
-        user_name = property(get_user_name, set_user_name, del_user_name, "user_name's docstring")
-        password = property(get_password, set_password, del_password, "password's docstring")
-        command = property(get_command, set_command, del_command, "command's docstring")
-        status = property(get_status, set_status, del_status, "status's docstring")
-        progress = property(get_progress, set_progress, del_progress, "progress's docstring")
-        elapsed_time = property(get_elapsed_time, set_elapsed_time, del_elapsed_time, "elapsed_time's docstring")
-        estimated_time = property(get_estimated_time, set_estimated_time, del_estimated_time, "estimated_time's docstring")
-        be_alive = property(get_be_alive, set_be_alive, del_be_alive, "be_alive's docstring")
-        aborted = property(get_aborted, set_aborted, del_aborted, "aborted's docstring")
-        last_output = property(get_last_output, set_last_output, del_last_output, "last_output's docstring")
+        def __init__(self):
+            self.host_name = ''
+            self.command_xcode=None
+            self.user_name = ''
+            self.password = ''
+            self.command = ''
+            self.status = ''
+            self.progress = ''
+            self.elapsed_time = ''
+            self.estimated_time = ''
+            self.be_alive = None
+            self.aborted = None
+            self.last_output = ''
 
         
         
