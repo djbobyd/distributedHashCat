@@ -178,16 +178,22 @@ class SSHController():
                         self.be_alive=True
                         break
                     if case():
-                        print "Unexpected value: " + self.status 
+                        log.warning("Unexpected value: %s" % self.status)
+                continue 
             if line.startswith("Progress."):
                 self.progress=line[line.find("(")+1:-1]
+                continue
             if line.startswith("Time.Running."):
                 self.elapsed_time=line.split(":")[1].strip()
+                continue
             if line.startswith("Time.Left."):
                 self.estimated_time=line.split(":")[1].strip()
+                continue
             if [True for i in ["$ ","$ s","# ","# s","ss"] if lines.endswith(i)]:
                 self.last_output=line_arr
                 self.be_alive=False
+                continue
+            log.warning("Line cannot be recognized: %s" % line)
                 
 
     
