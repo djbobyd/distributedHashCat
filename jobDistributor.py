@@ -33,20 +33,20 @@ about the submissions made--again, see submitMaster.
 import os, sys, time, yaml,logging.config
 from listQueue import listQueue
 from HashCat import SSHController, results
-from multiprocessing import Process, Pipe
+from multiprocessing import Process, Pipe, Queue
 
 config = yaml.load(open(os.path.join(os.path.dirname(__file__),'log.yml'), 'r'))
 logging.config.dictConfig(config)
 log = logging.getLogger('distributor')
 
-stream = file('config.yml', 'r')
+stream = file(os.path.join(os.path.dirname(__file__),'config.yml'), 'r')
 config = yaml.load(stream)
 
 #My computer list, should be able to ssh to without a password.
 
 class Job(object):
-    def __init__(self, sshController, res, status):
-        self.result = res
+    def __init__(self, sshController, q, status):
+        self.queue = q
         self.sshController = sshController
         self.startTime = time.ctime()
         self.status=status
@@ -57,14 +57,16 @@ class Job(object):
         return ret
 
     def checkStatus(self):
-        if self.result.get_status() == "Cracked":
+        res=self.queue.get()
+        if res.get_status() == "Cracked":
             self.status['cracked']=True
-            self.status['result']=self.result
+            self.status['result']=res
 
     def poll(self):
         #return None for testing
         if not self.sshController.is_alive():
             self.checkStatus()
+            self.sshController.join
             return False
         else:
             return True
@@ -127,39 +129,28 @@ class JobDistributor(object):
         #print('Starting command.')
 #       command_line = 'ssh ' + host + ' ' + command
 
-
-        #This implies that shlex is maybe splitting up the command too much
-        #in the case of matlab -nodisplay -r ... it thinks the commands
-        #I want executed by matlab are for unix and I get syntax errors.
-        #print('\n\nHere is the whole thing\n\n%s\n\nThere it was' % \
-        #      (shlex.split(command_line)))
-
-        #We'll build our own, for simplicity's sake.  That means
-        #it is solely the responsibility of the caller to construct
-        #the line as it should be run from the command line of the host.
-        
-#       p = subprocess.Popen(['ssh', host, command])
-        
-#       p = subprocess.Popen(shlex.split(command_line))
         hostInfo = self.getHostfromList(host)
         res = results()
-        HC = SSHController(hostInfo["name"],hostInfo["user"],hostInfo["pass"], command, res)
+        q = Queue()
+        HC = SSHController(hostInfo["name"],hostInfo["user"],hostInfo["pass"], command, q)
         p = Process(target=HC,args=())
         p.start()
         log.info('Submited to ' + host + ': ' + command)
-        self.processes[host].append(Job(p,res,self.status))
+        self.processes[host].append(Job(p,q,self.status))
         self.totalJobs += 1
 
     def getHost(self):
         """Find a host among the computer_list whose load is less than maxJobs."""
         #Could loop through computer_list here, but computer_list still lists the
         #unavailable ones.  
+        log.debug("Finding available host...")
         for host in self.processes:
             #clean out finished jobs. Keep only those which haven't terminated.
             self.processes[host] = [HC for HC in self.processes[host] if HC.poll()]
 
             if len(self.processes[host]) < self.maxJobs:
                 hostInfo=self.getHostfromList(host)
+                log.debug("Checking host %s" % hostInfo["name"])
                 if SSHController(hostInfo["name"],hostInfo["user"],hostInfo["pass"]).check_host():
                     return host
                 else:
@@ -192,6 +183,7 @@ class JobDistributor(object):
         return sum([len(plist) for plist in self.processes.values()])
 
     def cleanComputerList(self):
+        log.debug("Cleaning computer list ...")
         processes={}
         for host in self.processes:
             hostInfo=self.getHostfromList(host)
