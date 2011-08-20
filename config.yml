@@ -1,4 +1,5 @@
-hosts: [{name: "edno.local", user: "user1", pass: "pass1"},{name: "192.168.0.1", user: "root", pass: "56slave7"},{name: "192.168.1.137", user: "boby", pass: "098334057"}]
-heartbeat_timeout: 10
+hosts: [{name: "192.168.3.63", user: "user", pass: "86aleks09"}]
+heartbeat_timeout: 30
+init_timeout: 30
 poll_timeout: 10
 wait_timeout: 30

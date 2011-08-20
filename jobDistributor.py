@@ -45,7 +45,8 @@ config = yaml.load(stream)
 #My computer list, should be able to ssh to without a password.
 
 class Job(object):
-    def __init__(self, sshController, q, status):
+    def __init__(self, sshController, p, q, status):
+        self.process=p
         self.queue = q
         self.sshController = sshController
         self.startTime = time.ctime()
@@ -55,7 +56,9 @@ class Job(object):
         ret = '[Job on host %s: %-15s started %s]' % \
               (self.sshController.host_name, self.sshController.command[:15], self.startTime)
         return ret
-
+    def terminate(self):
+        self.process.terminate()
+    
     def checkStatus(self):
         res=self.queue.get()
         if res.get_status() == "Cracked":
@@ -64,17 +67,14 @@ class Job(object):
 
     def poll(self):
         #return None for testing
-        if not self.sshController.is_alive():
+        if not self.process.is_alive():
             self.checkStatus()
-            self.sshController.join
+            self.process.join
             return False
         else:
             return True
 
 class JobDistributor(object):
-    #Some static members.  Replace the elements of 
-    #computer_list with hostnames you have ssh access to
-    #without a password (see ssh-keygen)
     #reading config file
     
     
@@ -136,7 +136,7 @@ class JobDistributor(object):
         p = Process(target=HC,args=())
         p.start()
         log.info('Submited to ' + host + ': ' + command)
-        self.processes[host].append(Job(p,q,self.status))
+        self.processes[host].append(Job(HC,p,q,self.status))
         self.totalJobs += 1
 
     def getHost(self):
@@ -168,6 +168,9 @@ class JobDistributor(object):
         else:
             return '[JobDistributor: %i jobs on %i hosts]' % (len(self), len(self.processes))
     
+    def isDone(self):
+        return self.status["cracked"]
+    
     def __len__(self):
         #Return number of jobs running
         return self.cleanup()
@@ -179,7 +182,8 @@ class JobDistributor(object):
         if self.status['cracked']:
             for host in self.processes:
                 for job in self.processes[host]:
-                    job.sshController.set_aborted=True    
+                    #job.sshController.set_aborted=True
+                    job.terminate()    
         return sum([len(plist) for plist in self.processes.values()])
 
     def cleanComputerList(self):

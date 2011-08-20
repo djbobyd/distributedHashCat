@@ -59,7 +59,7 @@ def submitMaster(conn):
         if conn.poll():
             command = conn.recv()
             if command.lower() in ['dy','doneyet','finished','done']:
-                if len(JD) == 0 and jobQueue.isEmpty():
+                if (len(JD) == 0 and jobQueue.isEmpty()) or JD.isDone() :
                     print JD
                     conn.send('yes')
                     conn.close()
