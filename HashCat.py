@@ -16,18 +16,18 @@
 """
 
 
-import paramiko
+import paramiko, os
 import time, logging.config, yaml
 from threading import Thread
 
-config = yaml.load(open('log.yml', 'r'))
+config = yaml.load(open(os.path.join(os.path.dirname(__file__),'log.yml'), 'r'))
 logging.config.dictConfig(config)
 log = logging.getLogger('hashcat')
 
-stream = file('../distributedPython/config.yml', 'r')
+stream = file(os.path.join(os.path.dirname(__file__),'config.yml'), 'r')
 config = yaml.load(stream)
 
-class SSHController(Thread):
+class SSHController():
         
     """Connect to remote host with SSH and execute and control hashcat.
     
@@ -49,8 +49,7 @@ class SSHController(Thread):
         @param command: The hashcat command that have to be executed
         @param results: A list that will contain the results once this thread is completed.
          
-        """
-        Thread.__init__(self)    
+        """  
         self.results=results
         self.host_name = host_name
         self.user_name = user_name
@@ -66,7 +65,7 @@ class SSHController(Thread):
         self.elapsed_time = None
         self.estimated_time = None
         self.interval = int(config["heartbeat_timeout"])
-        self.is_alive = False
+        self.be_alive = False
         self.aborted = False
         self.last_output= ''
     
@@ -83,7 +82,7 @@ class SSHController(Thread):
     def set_command(self,value):
         self.command = value
     
-    def run(self):
+    def __call__(self):
         if not self.check_host():
             return
         self.login()
@@ -102,7 +101,7 @@ class SSHController(Thread):
             self.results.set_progress(self.progress)
             self.results.set_elapsed_time(self.elapsed_time)
             self.results.set_estimated_time(self.estimated_time)
-            self.results.set_is_alive(self.is_alive)
+            self.results.set_be_alive(self.be_alive)
             self.results.set_aborted(self.aborted)
             self.results.set_last_output(self.last_output)
         
@@ -128,7 +127,7 @@ class SSHController(Thread):
         log.debug("sending command: '%s' to host" % command)
         self.chan.send(command+'\n')
         time.sleep(5)
-        self.is_alive = True
+        self.be_alive = True
         self.read_proc()
         #self.thread = thread.start_new_thread(self.ping,())
         #self.stdin, self.stdout, self.stderr=self.ssh.exec_command(command)
@@ -148,8 +147,8 @@ class SSHController(Thread):
         return True
     
     def ping(self):
-        log.debug("Heartbeat is: %s and override is: %s" % (self.is_alive, self.aborted))
-        while self.is_alive and not self.aborted:
+        log.debug("Heartbeat is: %s and override is: %s" % (self.be_alive, self.aborted))
+        while self.be_alive and not self.aborted:
             self.write_proc("s")
             self.read_proc()
             log.debug("Sleeping for %d seconds" % self.interval)
@@ -163,20 +162,20 @@ class SSHController(Thread):
                 self.status=line.split(":")[1].strip()
                 for case in switch(self.status):
                     if case('Running'):
-                        self.is_alive=True
+                        self.be_alive=True
                         break
                     if case('Finished'):
-                        self.is_alive=False
+                        self.be_alive=False
                         break
                     if case('Cracked'):
-                        self.is_alive=False
+                        self.be_alive=False
                         self.get_result(lines)
                         break
                     if case('Aborted'):
-                        self.is_alive=False
+                        self.be_alive=False
                         break
                     if case('Initializing'):
-                        self.is_alive=True
+                        self.be_alive=True
                         break
                     if case():
                         print "Unexpected value: " + self.status 
@@ -186,21 +185,21 @@ class SSHController(Thread):
                 self.elapsed_time=line.split(":")[1].strip()
             if line.startswith("Time.Left."):
                 self.estimated_time=line.split(":")[1].strip()
-            if [True for i in ["$ ","$ s","# ","# s"] if lines.endswith(i)]:
+            if [True for i in ["$ ","$ s","# ","# s","ss"] if lines.endswith(i)]:
                 self.last_output=line_arr
-                self.is_alive=False
+                self.be_alive=False
                 
 
     
     def stop_proc(self):
         log.info("Sending stop command to process...")
-        self.is_alive = False
+        self.be_alive = False
         self.write_proc("q")
         self.read_proc()
     
     def read_proc(self):
         lines=''
-        while not [True for i in ["=> ","$ ","$ s","# ","# s"] if lines.endswith(i)]:
+        while not [True for i in ["=> ","$ ","$ s","# ","# s","ss"] if lines.endswith(i)]:
             try:
                 log.debug("Channel receive status: %s" % self.chan.recv_ready())
                 if self.chan.recv_ready():
@@ -284,8 +283,8 @@ class results():
             return self.__estimated_time
 
 
-        def get_is_alive(self):
-            return self.__is_alive
+        def get_be_alive(self):
+            return self.__be_alive
 
 
         def get_aborted(self):
@@ -328,8 +327,8 @@ class results():
             self.__estimated_time = value
 
 
-        def set_is_alive(self, value):
-            self.__is_alive = value
+        def set_be_alive(self, value):
+            self.__be_alive = value
 
 
         def set_aborted(self, value):
@@ -372,8 +371,8 @@ class results():
             del self.__estimated_time
 
 
-        def del_is_alive(self):
-            del self.__is_alive
+        def del_be_alive(self):
+            del self.__be_alive
 
 
         def del_aborted(self):
@@ -391,7 +390,7 @@ class results():
         progress = ''
         elapsed_time = ''
         estimated_time = ''
-        is_alive = None
+        be_alive = None
         aborted = None
         last_output = ''
         host_name = property(get_host_name, set_host_name, del_host_name, "host_name's docstring")
@@ -402,7 +401,7 @@ class results():
         progress = property(get_progress, set_progress, del_progress, "progress's docstring")
         elapsed_time = property(get_elapsed_time, set_elapsed_time, del_elapsed_time, "elapsed_time's docstring")
         estimated_time = property(get_estimated_time, set_estimated_time, del_estimated_time, "estimated_time's docstring")
-        is_alive = property(get_is_alive, set_is_alive, del_is_alive, "is_alive's docstring")
+        be_alive = property(get_be_alive, set_be_alive, del_be_alive, "be_alive's docstring")
         aborted = property(get_aborted, set_aborted, del_aborted, "aborted's docstring")
         last_output = property(get_last_output, set_last_output, del_last_output, "last_output's docstring")
 

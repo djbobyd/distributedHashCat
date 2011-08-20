@@ -33,17 +33,17 @@ See testSubmitMaster.py.
  Public License for more details.
 """
 
-import time,logging.config,yaml
+import time,logging.config,yaml,os
 #from multiprocessing import Connection
 from listQueue import listQueue
 from multiprocessing import Process, Pipe
 from jobDistributor import *
 
-config = yaml.load(open('log.yml', 'r'))
+config = yaml.load(open(os.path.join(os.path.dirname(__file__),'log.yml'), 'r'))
 logging.config.dictConfig(config)
 log = logging.getLogger('distributor')
 
-stream = file('../distributedPython/config.yml', 'r')
+stream = file('config.yml', 'r')
 config = yaml.load(stream)
 
 def submitMaster(conn):
