@@ -1,0 +1,37 @@
+version: 1
+formatters:
+  simple:
+    format: '%(asctime)s - %(levelname)s: %(message)s'
+  detailed:
+    format: '%(asctime)s - %(name)s - %(levelname)s %(module)s:%(lineno)d: %(message)s'
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: simple
+    stream: ext://sys.stdout
+  file:
+    class : logging.handlers.RotatingFileHandler
+    formatter : detailed
+    filename : main.log
+    maxBytes : 1000000
+    backupCount : 3
+  email:
+    class: logging.handlers.SMTPHandler
+    mailhost: localhost
+    fromaddr: my_app@domain.tld
+    toaddrs:
+      - support_team@domain.tld
+      - dev_team@domain.tld
+    subject: Houston, we have a problem.
+loggers:
+  hashcat:
+    level: DEBUG
+    handlers: [console,file]
+    propagate: no
+  root:
+    level: DEBUG
+    handlers: [console]
+  distributor:
+    level: DEBUG
+    handlers: [console]

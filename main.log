@@ -1,0 +1,69 @@
+2011-08-20 00:08:23,469 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 00:09:41,590 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 00:10:56,901 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 00:15:09,338 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 00:21:12,547 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 00:29:41,542 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 00:43:07,359 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 00:43:12,714 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 00:43:15,713 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 00:43:46,166 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 00:44:04,651 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.13 with user: boby
+2011-08-20 00:57:09,186 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 00:57:24,451 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 00:57:35,469 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 01:03:07,296 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.0.1 with user: root
+2011-08-20 01:03:07,742 - hashcat - DEBUG HashCat:141: Starting Shell!
+2011-08-20 01:03:07,784 - hashcat - DEBUG HashCat:144: Host is alive and running!
+2011-08-20 01:03:07,785 - hashcat - DEBUG HashCat:139: Making connection to remote host: edno.local with user: user1
+2011-08-20 01:03:12,788 - hashcat - ERROR HashCat:146: A connection to the host cannot be established!!!
+2011-08-20 01:03:12,788 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 01:03:13,457 - hashcat - DEBUG HashCat:141: Starting Shell!
+2011-08-20 01:03:13,571 - hashcat - DEBUG HashCat:144: Host is alive and running!
+2011-08-20 01:03:13,571 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.0.1 with user: root
+2011-08-20 01:03:14,031 - hashcat - DEBUG HashCat:141: Starting Shell!
+2011-08-20 01:03:14,075 - hashcat - DEBUG HashCat:144: Host is alive and running!
+2011-08-20 01:03:14,076 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.0.1 with user: root
+2011-08-20 01:03:14,077 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 01:03:14,555 - hashcat - DEBUG HashCat:141: Starting Shell!
+2011-08-20 01:03:14,566 - hashcat - DEBUG HashCat:141: Starting Shell!
+2011-08-20 01:03:14,602 - hashcat - DEBUG HashCat:144: Host is alive and running!
+2011-08-20 01:03:14,602 - hashcat - DEBUG HashCat:115: Making connection to remote host: 192.168.0.1 with user: root
+2011-08-20 01:03:14,775 - hashcat - DEBUG HashCat:144: Host is alive and running!
+2011-08-20 01:03:14,776 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 01:03:15,106 - hashcat - DEBUG HashCat:117: Starting Shell!
+2011-08-20 01:03:15,146 - hashcat - DEBUG HashCat:119: Connection established!
+2011-08-20 01:03:15,146 - hashcat - DEBUG HashCat:128: sending command: 'ping -c 10  dir.bg' to host
+2011-08-20 01:03:15,260 - hashcat - DEBUG HashCat:141: Starting Shell!
+2011-08-20 01:03:15,379 - hashcat - DEBUG HashCat:144: Host is alive and running!
+2011-08-20 01:03:15,379 - hashcat - DEBUG HashCat:115: Making connection to remote host: 192.168.1.137 with user: boby
+2011-08-20 01:03:15,716 - hashcat - DEBUG HashCat:117: Starting Shell!
+2011-08-20 01:03:15,885 - hashcat - DEBUG HashCat:119: Connection established!
+2011-08-20 01:03:15,885 - hashcat - DEBUG HashCat:128: sending command: 'ping -c 10 data.bg' to host
+2011-08-20 01:03:20,152 - hashcat - DEBUG HashCat:205: Channel receive status: True
+2011-08-20 01:03:20,152 - hashcat - DEBUG HashCat:205: Channel receive status: False
+2011-08-20 01:03:20,152 - hashcat - DEBUG HashCat:160: Lines array: ['Last login: Sat Aug 20 01:03:14 2011 from 172.16.2.10', '', 'ping -c 10  dir.bg', 'Hacko:~# ping -c 10  dir.bg', 'PING dir.bg (194.145.63.12) 56(84) bytes of data.', '64 bytes from dir.bg (194.145.63.12): icmp_seq=1 ttl=4 time=9.99 ms', '64 bytes from dir.bg (194.145.63.12): icmp_seq=2 ttl=4 time=10.6 ms', '64 bytes from dir.bg (194.145.63.12): icmp_seq=3 ttl=4 time=9.62 ms', '64 bytes from dir.bg (194.145.63.12): icmp_seq=4 ttl=4 time=10.1 ms', '64 bytes from dir.bg (194.145.63.12): icmp_seq=5 ttl=4 time=10.5 ms']
+2011-08-20 01:03:20,153 - hashcat - DEBUG HashCat:151: Heartbeat is: True and override is: False
+2011-08-20 01:03:20,153 - hashcat - DEBUG HashCat:217: Sending message: s through the channel...
+2011-08-20 01:03:20,153 - hashcat - DEBUG HashCat:205: Channel receive status: False
+2011-08-20 01:03:20,153 - hashcat - DEBUG HashCat:160: Lines array: []
+2011-08-20 01:03:20,153 - hashcat - DEBUG HashCat:155: Sleeping for 10 seconds
+2011-08-20 01:03:20,890 - hashcat - DEBUG HashCat:205: Channel receive status: True
+2011-08-20 01:03:20,890 - hashcat - DEBUG HashCat:205: Channel receive status: False
+2011-08-20 01:03:20,891 - hashcat - DEBUG HashCat:160: Lines array: ['Welcome to Ubuntu oneiric (development branch) (GNU/Linux 3.0.0-8-generic-pae i686)', '', ' * Documentation:  https://help.ubuntu.com/', '', 'Use "tail -f /var/log/some.log" to see new lines added to a log instantly in', 'real time.  Ideal from watching webserver requests as they happen.', '', '*** /dev/mapper/isw_debgedhihe_Main_RAID0p8 will be checked for errors at next reboot ***', '', 'Last login: Sat Aug 20 01:03:15 2011 from 192.168.1.137', '', 'ping -c 10 data.bg', '\x1b[01;32mboby@boby-desktop\x1b[00m:\x1b[01;34m~\x1b[00m$ ping -c 10 data.bg', 'PING data.bg (195.149.248.130) 56(84) bytes of data.', '64 bytes from web.data.bg (195.149.248.130): icmp_req=1 ttl=61 time=1.86 ms', '64 bytes from web.data.bg (195.149.248.130): icmp_req=2 ttl=61 time=1.82 ms', '64 bytes from web.data.bg (195.149.248.130): icmp_req=3 ttl=61 time=2.29 ms', '64 bytes from web.data.bg (195.149.248.130): icmp_req=4 ttl=61 time=1.05 ms']
+2011-08-20 01:03:20,891 - hashcat - DEBUG HashCat:151: Heartbeat is: True and override is: False
+2011-08-20 01:03:20,891 - hashcat - DEBUG HashCat:217: Sending message: s through the channel...
+2011-08-20 01:03:20,891 - hashcat - DEBUG HashCat:205: Channel receive status: False
+2011-08-20 01:03:20,892 - hashcat - DEBUG HashCat:160: Lines array: []
+2011-08-20 01:03:20,892 - hashcat - DEBUG HashCat:155: Sleeping for 10 seconds
+2011-08-20 01:03:30,162 - hashcat - DEBUG HashCat:217: Sending message: s through the channel...
+2011-08-20 01:03:30,162 - hashcat - DEBUG HashCat:205: Channel receive status: True
+2011-08-20 01:03:30,163 - hashcat - DEBUG HashCat:160: Lines array: ['s64 bytes from dir.bg (194.145.63.12): icmp_seq=6 ttl=4 time=9.71 ms', '64 bytes from dir.bg (194.145.63.12): icmp_seq=7 ttl=4 time=10.6 ms', '64 bytes from dir.bg (194.145.63.12): icmp_seq=8 ttl=4 time=10.2 ms', '64 bytes from dir.bg (194.145.63.12): icmp_seq=9 ttl=4 time=10.5 ms', '64 bytes from dir.bg (194.145.63.12): icmp_seq=10 ttl=4 time=10.2 ms', '', '--- dir.bg ping statistics ---', '10 packets transmitted, 10 received, 0% packet loss, time 9047ms', 'rtt min/avg/max/mdev = 9.621/10.239/10.691/0.388 ms', 'Hacko:~# s']
+2011-08-20 01:03:30,163 - hashcat - DEBUG HashCat:155: Sleeping for 10 seconds
+2011-08-20 01:03:30,902 - hashcat - DEBUG HashCat:217: Sending message: s through the channel...
+2011-08-20 01:03:30,903 - hashcat - DEBUG HashCat:205: Channel receive status: True
+2011-08-20 01:03:30,903 - hashcat - DEBUG HashCat:160: Lines array: ['s64 bytes from web.data.bg (195.149.248.130): icmp_req=5 ttl=61 time=1.92 ms', '64 bytes from web.data.bg (195.149.248.130): icmp_req=6 ttl=61 time=0.931 ms', '64 bytes from web.data.bg (195.149.248.130): icmp_req=7 ttl=61 time=1.38 ms', '64 bytes from web.data.bg (195.149.248.130): icmp_req=8 ttl=61 time=2.02 ms', '64 bytes from web.data.bg (195.149.248.130): icmp_req=9 ttl=61 time=1.27 ms', '64 bytes from web.data.bg (195.149.248.130): icmp_req=10 ttl=61 time=1.69 ms', '', '--- data.bg ping statistics ---', '10 packets transmitted, 10 received, 0% packet loss, time 9010ms', 'rtt min/avg/max/mdev = 0.931/1.627/2.290/0.422 ms', '\x1b[01;32mboby@boby-desktop\x1b[00m:\x1b[01;34m~\x1b[00m$ s']
+2011-08-20 01:03:30,903 - hashcat - DEBUG HashCat:155: Sleeping for 10 seconds
+2011-08-20 01:03:40,171 - hashcat - INFO HashCat:230: closing connection to host 192.168.0.1
+2011-08-20 01:03:40,914 - hashcat - INFO HashCat:230: closing connection to host 192.168.1.137
+2011-08-20 11:15:24,902 - hashcat - DEBUG HashCat:139: Making connection to remote host: 192.168.1.137 with user: boby
