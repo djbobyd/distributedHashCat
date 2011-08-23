@@ -27,7 +27,7 @@ log = logging.getLogger('hashcat')
 stream = file(os.path.join(os.path.dirname(__file__),'config.yml'), 'r')
 config = yaml.load(stream)
 
-class SSHController():
+class SSHController(Thread):
         
     """Connect to remote host with SSH and execute and control hashcat.
     
@@ -41,7 +41,7 @@ class SSHController():
     @ivar ssh: Instance of a paramiko.SSHClient object
     """
         
-    def __init__(self, host_name, user_name, password,command='',result={}):
+    def __init__(self, host_name, user_name, password,command='',results=None):
         """
         @param host_name: Host name or IP address
         @param user_name: User name 
@@ -49,9 +49,9 @@ class SSHController():
         @param command: The hashcat command that have to be executed
         @param results: A list that will contain the results once this thread is completed.
          
-        """  
-        self.queue=result
-        self.results=results()
+        """
+        Thread.__init__(self)    
+        self.results=results
         self.host_name = host_name
         self.user_name = user_name
         self.password = password
@@ -88,7 +88,7 @@ class SSHController():
     def set_command(self,value):
         self.command = value
     
-    def __call__(self):
+    def run(self):
         if not self.check_host():
             return
         self.login()
@@ -99,19 +99,19 @@ class SSHController():
         
     def fill_results(self):
         log.debug("Filling results in the provided results instance...")
-        self.results.set_host_name(self.host_name)
-        self.results.set_command_xcode(self.command_xcode)
-        self.results.set_user_name(self.user_name)
-        self.results.set_password(self.password)
-        self.results.set_command(self.command) 
-        self.results.set_status(self.status)
-        self.results.set_progress(self.progress)
-        self.results.set_elapsed_time(self.elapsed_time)
-        self.results.set_estimated_time(self.estimated_time)
-        self.results.set_be_alive(self.be_alive)
-        self.results.set_aborted(self.aborted)
-        self.results.set_last_output(self.last_output)
-        self.queue.put(self.results)
+        if self.results <> None:
+            self.results.set_host_name(self.host_name)
+            self.results.set_command_xcode(self.command_xcode)
+            self.results.set_user_name(self.user_name)
+            self.results.set_password(self.password)
+            self.results.set_command(self.command) 
+            self.results.set_status(self.status)
+            self.results.set_progress(self.progress)
+            self.results.set_elapsed_time(self.elapsed_time)
+            self.results.set_estimated_time(self.estimated_time)
+            self.results.set_be_alive(self.be_alive)
+            self.results.set_aborted(self.aborted)
+            self.results.set_last_output(self.last_output)
               
     def login(self):
         """Connect to a remote host and login.
@@ -144,7 +144,6 @@ class SSHController():
     def check_host(self):
         try:
             log.debug("Making connection to remote host: %s with user: %s" % (self.host_name, self.user_name))
-            
             self.connection = self.ssh.connect(self.host_name,self.port, self.user_name, self.password, timeout=5)
             log.debug("Starting Shell!")
             self.chan = self.ssh.invoke_shell()
