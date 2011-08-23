@@ -95,8 +95,7 @@ def main(argv):
         sys.exit(0)   
 
 if __name__ == "__main__":
-    #main(sys.argv[1:])
-    pass
+    main(sys.argv[1:])
 
 def calculateStart(percent):
     return percent*1000000000
@@ -119,11 +118,11 @@ on the host machines.
 """
 #curDir = os.path.abspath('.')
 #commands = ["cd %s; ./testScript 'Testing Process number %i'" % (curDir, number) + " &> output%i.out" % (number) for number in range(50)]
-commands = ["ping -c 10 dir.bg","ping -c 10 data.bg"]
+#commands = ["ping -c 10 dir.bg","ping -c 10 data.bg"]
 
 #for comm in commands:
 #    print(comm)
 log.info("Sending command list to Submit Master...")
-processCommandsInParallel(commands)
-#processCommandsInParallel(createCommandList())
+#processCommandsInParallel(commands)
+processCommandsInParallel(createCommandList())
 #print createCommandList()

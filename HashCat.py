@@ -98,21 +98,20 @@ class SSHController():
         self.logout()
         
     def fill_results(self):
-        if self.results <> None:
-            log.debug("Filling results in the provided results instance...")
-            self.results.set_host_name(self.host_name)
-            self.results.set_command_xcode(self.command_xcode)
-            self.results.set_user_name(self.user_name)
-            self.results.set_password(self.password)
-            self.results.set_command(self.command) 
-            self.results.set_status(self.status)
-            self.results.set_progress(self.progress)
-            self.results.set_elapsed_time(self.elapsed_time)
-            self.results.set_estimated_time(self.estimated_time)
-            self.results.set_be_alive(self.be_alive)
-            self.results.set_aborted(self.aborted)
-            self.results.set_last_output(self.last_output)
-            self.queue.put(self.results)
+        log.debug("Filling results in the provided results instance...")
+        self.results.set_host_name(self.host_name)
+        self.results.set_command_xcode(self.command_xcode)
+        self.results.set_user_name(self.user_name)
+        self.results.set_password(self.password)
+        self.results.set_command(self.command) 
+        self.results.set_status(self.status)
+        self.results.set_progress(self.progress)
+        self.results.set_elapsed_time(self.elapsed_time)
+        self.results.set_estimated_time(self.estimated_time)
+        self.results.set_be_alive(self.be_alive)
+        self.results.set_aborted(self.aborted)
+        self.results.set_last_output(self.last_output)
+        self.queue.put(self.results)
               
     def login(self):
         """Connect to a remote host and login.
@@ -135,7 +134,7 @@ class SSHController():
         """ 
         log.debug("sending command: '%s' to host" % command)
         self.chan.send(command+'\n')
-        time.sleep(5)
+        time.sleep(int(config["init_timeout"]))
         self.be_alive = True
         self.read_proc()
         #self.thread = thread.start_new_thread(self.ping,())
@@ -179,7 +178,6 @@ class SSHController():
                         break
                     if case('Cracked'):
                         self.be_alive=False
-                        self.get_result(lines)
                         break
                     if case('Aborted'):
                         self.be_alive=False
