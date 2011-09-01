@@ -59,8 +59,10 @@ def submitMaster(conn):
         if conn.poll():
             command = conn.recv()
             if command.lower() in ['dy','doneyet','finished','done']:
-                if (len(JD) == 0 and jobQueue.isEmpty()) or JD.isDone() :
-                    print JD
+                #TODO insert update information for the display
+                log.info("Current progress is: %.2f" % JD.totalProgress)
+                if len(JD) == 0 and jobQueue.isEmpty() :
+                    log.info(JD)
                     conn.send('yes')
                     conn.close()
                     return
@@ -71,7 +73,9 @@ def submitMaster(conn):
 
         #Distribute as many jobs as possible.
         while not jobQueue.isEmpty() and not JD.isFull():
-            JD.distribute(jobQueue.dequeue())   
+            JD.distribute(jobQueue.dequeue())
+        while JD.getErrors() != 0:
+            jobQueue.enqueue(JD.getErrorJob())   
             
         if not conn.poll():
             #print('Going to sleep...')
@@ -96,6 +100,7 @@ def processCommandsInParallel(commands):
     #Don't quit until the submitMaster says it's done.
     waitCycles = int(config["wait_timeout"])
     log.debug("wait_timeout: %d"% waitCycles)
+    #TODO add more logic to act as a server that can receive and execute jobs on demand
     while True:
         pconn.send('dy')
         if pconn.recv() == 'yes':
