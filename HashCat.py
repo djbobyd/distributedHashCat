@@ -20,13 +20,6 @@ import paramiko, os
 import time, logging.config, yaml
 from threading import Thread
 
-config = yaml.load(open(os.path.join(os.path.dirname(__file__),'log.yml'), 'r'))
-logging.config.dictConfig(config)
-log = logging.getLogger('hashcat')
-
-stream = file(os.path.join(os.path.dirname(__file__),'config.yml'), 'r')
-config = yaml.load(stream)
-
 class SSHController(Thread):
         
     """Connect to remote host with SSH and execute and control hashcat.
@@ -40,8 +33,11 @@ class SSHController(Thread):
     @ivar prompt: Command prompt (or partial string matching the end of the prompt)
     @ivar ssh: Instance of a paramiko.SSHClient object
     """
+    conf = yaml.load(open(os.path.join(os.path.dirname(__file__),'log.yml'), 'r'))
+    stream = file(os.path.join(os.path.dirname(__file__),'config.yml'), 'r')
+    config = yaml.load(stream)
         
-    def __init__(self, host_name, user_name, password,command='',result=None):
+    def __init__(self, hostInfo,command='',result=None):
         """
         @param host_name: Host name or IP address
         @param user_name: User name 
@@ -51,20 +47,24 @@ class SSHController(Thread):
          
         """
         Thread.__init__(self)
+        if not os.path.exists('logs'):
+            os.makedirs('logs')
+        self.conf["handlers"][hostInfo.getHostName()+"_file"]={'filename': 'logs/'+hostInfo.getHostName()+'.log', 'formatter': 'detailed', 'backupCount': 3, 'class': 'logging.handlers.RotatingFileHandler', 'maxBytes': 1000000}
+        self.conf["loggers"][hostInfo.getHostName()]={'level': 'DEBUG', 'propagate': False, 'handlers': ['threaded_console', hostInfo.getHostName()+'_file']}
+        logging.config.dictConfig(self.conf)
+        global log
+        log = logging.LoggerAdapter(logging.getLogger(hostInfo.getHostName()),{'clientip': hostInfo.getHostName()})
         if result == None:
             self.results=results()
         else:    
             self.results=result
-        self.results.set_host_name(host_name)
-        self.results.set_user_name(user_name)
-        self.results.set_password(password)
+        self.results.set_host(hostInfo)
         self.results.set_command(command)
-        self.port = 22  #default SSH port
         self.chan = None
         self.connection = None
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.interval = int(config["heartbeat_timeout"])
+        self.interval = int(self.config["heartbeat_timeout"])
         self.be_alive = False
         self.aborted = False
 
@@ -74,7 +74,7 @@ class SSHController(Thread):
     
     def __str__(self) :
         #return str(self.__dict__)
-        return str({"host_name":self.results.get_host_name(), "user_name":self.results.get_user_name()})
+        return str({"host_name":self.results.get_host().getHostName(), "user_name":self.results.get_host().getUserName()})
 
     def __eq__(self, other) : 
         return self.__dict__ == other.__dict__
@@ -98,8 +98,8 @@ class SSHController(Thread):
             
         """
 
-        log.debug("Making connection to remote host: %s with user: %s" % (self.results.get_host_name(), self.results.get_user_name()))
-        self.connection = self.ssh.connect(self.results.get_host_name(),self.port, self.results.get_user_name(), self.results.get_password(), timeout=5)
+        log.debug("Making connection to remote host: %s with user: %s" % (self.results.get_host().getHostName(), self.results.get_host().getUserName()))
+        self.connection = self.ssh.connect(self.results.get_host().getHostName(),self.results.get_host().getPort(), self.results.get_host().getUserName(), self.results.get_host().getPassword(), timeout=5)
         log.debug("Starting Shell!")
         self.chan = self.ssh.invoke_shell()
         log.debug("Connection established!")
@@ -113,15 +113,16 @@ class SSHController(Thread):
         """ 
         log.debug("sending command: '%s' to host" % command)
         self.chan.send(command+'\n')
-        time.sleep(int(config["init_timeout"]))
+        time.sleep(int(self.config["init_timeout"]))
         self.be_alive = True
         self.read_proc()
         return self.chan.send_ready()
     
     def check_host(self):
+        log.debug("Start checking of host...")
         try:
-            log.debug("Making connection to remote host: %s with user: %s" % (self.results.get_host_name(), self.results.get_user_name()))
-            self.connection = self.ssh.connect(self.results.get_host_name(),self.port, self.results.get_user_name(), self.results.get_password(), timeout=5)
+            log.debug("Making connection to remote host: %s with user: %s" % (self.results.get_host().getHostName(), self.results.get_host().getUserName()))
+            self.connection = self.ssh.connect(self.results.get_host().getHostName(),self.results.get_host().getPort(), self.results.get_host().getUserName(), self.results.get_host().getPassword(), timeout=5)
             log.debug("Starting Shell!")
             self.chan = self.ssh.invoke_shell()
             self.ssh.close()
@@ -255,7 +256,7 @@ class SSHController(Thread):
         """
         Close the connection to the remote host.    
         """
-        log.info("closing connection to host %s" % self.results.get_host_name())
+        log.info("closing connection to host %s" % self.results.get_host().getHostName())
         self.ssh.close()
 
 class switch(object):
@@ -280,17 +281,11 @@ class switch(object):
       
 class results():
 
-        def get_host_name(self):
-            return self.host_name
+        def get_host(self):
+            return self.host
 
         def get_command_xcode(self):
             return self.command_xcode
-
-        def get_user_name(self):
-            return self.user_name
-
-        def get_password(self):
-            return self.password
 
         def get_command(self):
             return self.command
@@ -316,17 +311,11 @@ class results():
         def get_last_output(self):
             return self.last_output
 
-        def set_host_name(self, value):
-            self.host_name = value
+        def set_host(self, value):
+            self.host = value
 
         def set_command_xcode(self, value):
             self.command_xcode = value
-
-        def set_user_name(self, value):
-            self.user_name = value
-
-        def set_password(self, value):
-            self.password = value
 
         def set_command(self, value):
             self.command = value
@@ -353,10 +342,8 @@ class results():
             self.last_output = value
 
         def __init__(self):
-            self.host_name = ''
+            self.host = None
             self.command_xcode=0
-            self.user_name = ''
-            self.password = ''
             self.command = ''
             self.status = ''
             self.progress = 0.0

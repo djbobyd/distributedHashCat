@@ -4,3 +4,4 @@ heartbeat_timeout: 30
 init_timeout: 30
 poll_timeout: 10
 wait_timeout: 30
+hostErrors: 3

@@ -43,6 +43,12 @@ config = yaml.load(stream)
 
 #My computer list, should be able to ssh to without a password.
 
+class Enum(set):
+    def __getattr__(self, name):
+        if name in self:
+            return name
+        raise AttributeError
+
 class Job(object):
     def __init__(self, hostInfo,command, status):
         self.result = results()
@@ -50,12 +56,13 @@ class Job(object):
         self.status=status
         self.command=command
         self.host=hostInfo
-        self.HC = SSHController(self.host["name"],self.host["user"],self.host["pass"], self.command, self.result)
+        self.HC = SSHController(self.host, self.command, self.result)
+        self.host.setStatus=Host.States.Running
         self.HC.start()
 
     def __str__(self):
         ret = '[Job on host %s: %-15s started %s]' % \
-              (self.HC.host_name, self.HC.command[:15], self.startTime)
+              (self.host.getHostName, self.HC.command[:15], self.startTime)
         return ret
     def terminate(self):
         self.HC.set_aborted(True)
@@ -75,11 +82,42 @@ class Job(object):
     
     def getCurrent(self):
         return self.result
+    
+    def getHost(self):
+        return self.host
+
+class Host(object):
+    States = Enum(["NotAvailable","Running","Available","Down","Error"])
+    status = States.NotAvailable
+    errors = 0
+    def __init__(self, host, user, password, port = 22):
+        self.hostName = host
+        self.userName = user
+        self.password = password
+        self.port = port
+    def getHostName(self):
+        return self.hostName
+    def getUserName(self):
+        return self.userName
+    def getPassword(self):
+        return self.password
+    def getPort(self):
+        return self.port
+    def setStatus(self,state):
+        self.status = state
+    def getStatus(self):
+        return self.status
+    def getErrors(self):
+        return self.errors
+    def addError(self):
+        self.errors+=1
+    def resetErrors(self):
+        self.errors=0
 
 class JobDistributor(object):
     _instance = None
     #reading config file
-    computer_list = config["hosts"]
+    computer_list = []
     maxJobs = 1
     errorQueue = listQueue(10)
     processes = {}  
@@ -94,10 +132,13 @@ class JobDistributor(object):
             raise AssertionError('JobDistributor init ERROR: ' + \
                                  'Only one JD object allowed')
         self.instances = 1
-        
+        self.computer_list = self.getHostfromConfig()
         for host in self.computer_list:
-            self.processes[host["name"]] = []
-        self.cleanComputerList()
+            if SSHController(host).check_host():
+                host.setStatus=Host.States.Available
+                self.processes[host.getHostName()] = []
+            else:
+                host.setStatus=Host.States.Down
     
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -107,6 +148,16 @@ class JobDistributor(object):
     
     def getErrors(self):
         return len(self.errorQueue)
+    
+    def getHostfromConfig(self):
+        list = config["hosts"]
+        pcList=[]
+        for host in list:
+            h = Host(host["name"], host["user"], host["pass"])
+            log.debug("Host %s extracted form config file." % h.getHostName())
+            pcList.append(h)
+        log.debug("Total number of hosts is: %i" % len(pcList))
+        return pcList
     
     def setMaxJobs(self, num):
         self.maxJobs = num
@@ -120,7 +171,7 @@ class JobDistributor(object):
     def distribute(self, command):
         procNum = self.totalJobs
         #Simplified for now.  Just to see if the data all works.
-        log.info('\nSearching for host for process %i...' % (procNum))
+        log.info('Searching for host for process %i...' % (procNum))
         hostFound = False
         waitCycles = 0
         while not hostFound:
@@ -148,19 +199,13 @@ class JobDistributor(object):
         #Could loop through computer_list here, but computer_list still lists the
         #unavailable ones.  
         log.debug("Finding available host...")
+        self.cleanup()
         for host in self.processes:
-            #clean out finished jobs. Keep only those which haven't terminated.
-            for job in self.processes[host]:
-                if job.getCurrent().get_command_xcode()!=0:
-                    self.errorQueue.enqueue(job.getCurrent().get_command())
-                    self.errors=self.errors+1
-            self.processes[host] = [HC for HC in self.processes[host] if HC.getCurrent().get_command_xcode()!=0]
-            self.processes[host] = [HC for HC in self.processes[host] if HC.poll()]
-
+           
             if len(self.processes[host]) < self.maxJobs:
                 hostInfo=self.getHostfromList(host)
-                log.debug("Checking host %s" % hostInfo["name"])
-                if SSHController(hostInfo["name"],hostInfo["user"],hostInfo["pass"]).check_host():
+                log.debug("Checking host %s" % hostInfo.getHostName())
+                if SSHController(hostInfo).check_host() and hostInfo.getErrors()<config['hostErrors']:
                     return host
                 else:
                     log.error('getHost() error: host %s not available.' % (host))
@@ -186,8 +231,11 @@ class JobDistributor(object):
             for job in self.processes[host]:
                 if job.getCurrent().get_command_xcode()!=0:
                     self.errorQueue.enqueue(job.getCurrent().get_command())
-            self.processes[host] = [HC for HC in self.processes[host] if HC.getCurrent().get_command_xcode()==0]
-            self.processes[host] = [HC for HC in self.processes[host] if HC.poll()]
+                    job.getHost().addError()
+                    job.geHost().setStatus=Host.States.Error
+                    self.errors=self.errors+1
+            self.processes[host] = [job for job in self.processes[host] if job.getCurrent().get_command_xcode()==0]
+            self.processes[host] = [job for job in self.processes[host] if job.poll()]
             self.calculateProgress()
         if self.status['cracked']:
             for host in self.processes:
@@ -216,21 +264,9 @@ class JobDistributor(object):
         else:
             self.totalProgress = maxNumber + fraction
     
-    def cleanComputerList(self):
-        log.debug("Cleaning computer list ...")
-        processes={}
-        for host in self.processes:
-            hostInfo=self.getHostfromList(host)
-            HC=SSHController(hostInfo["name"],hostInfo["user"],hostInfo["pass"])
-            if not HC.check_host():
-                log.warning(str(HC)+" is not available!!! Removing from list...")
-                continue
-            processes[host]=self.processes[host]
-        self.processes=processes
-    
     def getHostfromList(self,host):
         for hostInfo in self.computer_list:
-            if hostInfo["name"] == host:
+            if hostInfo.getHostName() == host:
                 return hostInfo
    
     #TODO remove the submitMaster file and move the logic here.

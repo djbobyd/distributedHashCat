@@ -2,13 +2,22 @@ version: 1
 formatters:
   simple:
     format: '%(asctime)s - %(levelname)s: %(message)s'
+  threaded_simple:
+    format: '%(clientip)s: %(asctime)s - %(levelname)s: %(message)s'  
   detailed:
     format: '%(asctime)s - %(name)s - %(levelname)s %(module)s:%(lineno)d: %(message)s'
+  threaded_detailed:
+    format: '%(clientip)s: %(asctime)s - %(name)s - %(levelname)s %(module)s:%(lineno)d: %(message)s'
 handlers:
   console:
     class: logging.StreamHandler
     level: DEBUG
     formatter: simple
+    stream: ext://sys.stdout
+  threaded_console:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: threaded_simple
     stream: ext://sys.stdout
   file:
     class : logging.handlers.RotatingFileHandler
@@ -16,6 +25,12 @@ handlers:
     filename : main.log
     maxBytes : 1000000
     backupCount : 3
+  threaded_file:
+    class : logging.handlers.RotatingFileHandler
+    formatter : threaded_detailed
+    filename : thread.log
+    maxBytes : 1000000
+    backupCount : 3  
   email:
     class: logging.handlers.SMTPHandler
     mailhost: localhost
@@ -27,7 +42,7 @@ handlers:
 loggers:
   hashcat:
     level: DEBUG
-    handlers: [console,file]
+    handlers: [threaded_console,threaded_file]
     propagate: no
   root:
     level: DEBUG
