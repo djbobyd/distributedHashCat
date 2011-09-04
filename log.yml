@@ -14,23 +14,12 @@ handlers:
     level: DEBUG
     formatter: simple
     stream: ext://sys.stdout
-  threaded_console:
-    class: logging.StreamHandler
-    level: DEBUG
-    formatter: threaded_simple
-    stream: ext://sys.stdout
   file:
     class : logging.handlers.RotatingFileHandler
     formatter : detailed
     filename : main.log
     maxBytes : 1000000
     backupCount : 3
-  threaded_file:
-    class : logging.handlers.RotatingFileHandler
-    formatter : threaded_detailed
-    filename : thread.log
-    maxBytes : 1000000
-    backupCount : 3  
   email:
     class: logging.handlers.SMTPHandler
     mailhost: localhost
@@ -40,13 +29,10 @@ handlers:
       - dev_team@domain.tld
     subject: Houston, we have a problem.
 loggers:
-  hashcat:
-    level: DEBUG
-    handlers: [threaded_console,threaded_file]
-    propagate: no
   root:
     level: DEBUG
-    handlers: [console]
+    handlers: [console,file]
   distributor:
     level: DEBUG
-    handlers: [console]
+    handlers: [console,file]
+    propagate: no

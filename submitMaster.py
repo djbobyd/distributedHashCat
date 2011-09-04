@@ -43,7 +43,7 @@ config = yaml.load(open(os.path.join(os.path.dirname(__file__),'log.yml'), 'r'))
 logging.config.dictConfig(config)
 log = logging.getLogger('distributor')
 
-stream = file('config.yml', 'r')
+stream = file(os.path.join(os.path.dirname(__file__),'config.yml'), 'r')
 config = yaml.load(stream)
 
 def submitMaster(conn):
@@ -61,6 +61,7 @@ def submitMaster(conn):
             if command.lower() in ['dy','doneyet','finished','done']:
                 #TODO insert update information for the display
                 log.info("Current progress is: %.2f" % JD.totalProgress)
+                log.info("Total Number of errors: %i" % JD.getErrors())
                 if len(JD) == 0 and jobQueue.isEmpty() :
                     log.info(JD)
                     conn.send('yes')

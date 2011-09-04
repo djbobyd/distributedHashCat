@@ -50,7 +50,7 @@ class SSHController(Thread):
         if not os.path.exists('logs'):
             os.makedirs('logs')
         self.conf["handlers"][hostInfo.getHostName()+"_file"]={'filename': 'logs/'+hostInfo.getHostName()+'.log', 'formatter': 'detailed', 'backupCount': 3, 'class': 'logging.handlers.RotatingFileHandler', 'maxBytes': 1000000}
-        self.conf["loggers"][hostInfo.getHostName()]={'level': 'DEBUG', 'propagate': False, 'handlers': ['threaded_console', hostInfo.getHostName()+'_file']}
+        self.conf["loggers"][hostInfo.getHostName()]={'level': 'DEBUG', 'propagate': False, 'handlers': ['console', hostInfo.getHostName()+'_file']}
         logging.config.dictConfig(self.conf)
         global log
         log = logging.LoggerAdapter(logging.getLogger(hostInfo.getHostName()),{'clientip': hostInfo.getHostName()})

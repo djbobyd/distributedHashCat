@@ -34,8 +34,8 @@ import os, sys, time, yaml,logging.config, math, datetime
 from listQueue import listQueue
 from HashCat import SSHController, results
 
-config = yaml.load(open(os.path.join(os.path.dirname(__file__),'log.yml'), 'r'))
-logging.config.dictConfig(config)
+conf = yaml.load(open(os.path.join(os.path.dirname(__file__),'log.yml'), 'r'))
+logging.config.dictConfig(conf)
 log = logging.getLogger('distributor')
 
 stream = file(os.path.join(os.path.dirname(__file__),'config.yml'), 'r')
@@ -62,7 +62,7 @@ class Job(object):
 
     def __str__(self):
         ret = '[Job on host %s: %-15s started %s]' % \
-              (self.host.getHostName, self.HC.command[:15], self.startTime)
+              (self.host.getHostName(), self.HC.command[:15], self.startTime)
         return ret
     def terminate(self):
         self.HC.set_aborted(True)
@@ -215,7 +215,7 @@ class JobDistributor(object):
     def __str__(self):
         if self.cleanup()==0:
             if self.status["cracked"]:
-                return 'JobDistributor: !!! hash cracked !!! result available on host: '+self.status["result"].get_host_name()
+                return 'JobDistributor: !!! hash cracked !!! result available on host: '+self.status["result"].get_host().getHostName()
             else:
                 return 'JobDistributor: cracking failed!!!'
         else:
