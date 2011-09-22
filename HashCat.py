@@ -2,7 +2,7 @@
 
 #  Copyright (c) 2005, Corey Goldberg
 #
-#  SSHController.py is free software; you can redistribute it and/or modify
+#  HashCat.py is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
@@ -16,11 +16,12 @@
 """
 
 
-import paramiko, os
-import time, logging.config, yaml
+import time
 from threading import Thread
+from Config import Config
 
-class SSHController(Thread):
+
+class HashCat(Thread):
         
     """Connect to remote host with SSH and execute and control hashcat.
     
@@ -33,11 +34,10 @@ class SSHController(Thread):
     @ivar prompt: Command prompt (or partial string matching the end of the prompt)
     @ivar ssh: Instance of a paramiko.SSHClient object
     """
-    conf = yaml.load(open(os.path.join(os.path.dirname(__file__),'log.yml'), 'r'))
-    stream = file(os.path.join(os.path.dirname(__file__),'config.yml'), 'r')
-    config = yaml.load(stream)
+
+    config = Config().getConfig()
         
-    def __init__(self, hostInfo,command='',result=None):
+    def __init__(self, hostInfo,command):
         """
         @param host_name: Host name or IP address
         @param user_name: User name 
@@ -47,24 +47,14 @@ class SSHController(Thread):
          
         """
         Thread.__init__(self)
-        if not os.path.exists('logs'):
-            os.makedirs('logs')
-        self.conf["handlers"][hostInfo.getHostName()+"_file"]={'filename': 'logs/'+hostInfo.getHostName()+'.log', 'formatter': 'detailed', 'backupCount': 3, 'class': 'logging.handlers.RotatingFileHandler', 'maxBytes': 1000000}
-        self.conf["loggers"][hostInfo.getHostName()]={'level': 'DEBUG', 'propagate': False, 'handlers': ['console', hostInfo.getHostName()+'_file']}
-        logging.config.dictConfig(self.conf)
-        global log
-        log = logging.LoggerAdapter(logging.getLogger(hostInfo.getHostName()),{'clientip': hostInfo.getHostName()})
-        if result == None:
-            self.results=results()
-        else:    
-            self.results=result
+        self.log = Config().getLogger('distributor.'+hostInfo.getHostName(), hostInfo.getHostName())
+        self.log.debug("Logging has been configured!!!")
+        self.results=results()
         self.results.set_host(hostInfo)
         self.results.set_command(command)
-        self.chan = None
-        self.connection = None
-        self.ssh = paramiko.SSHClient()
-        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.interval = int(self.config["heartbeat_timeout"])
+        self.__chan = None
+        self.__ssh = None
+        self.interval = int(HashCat.config["heartbeat_timeout"])
         self.be_alive = False
         self.aborted = False
 
@@ -79,30 +69,20 @@ class SSHController(Thread):
     def __eq__(self, other) : 
         return self.__dict__ == other.__dict__
     
-    def set_aborted(self,value):
+    def abort(self,value):
         self.aborted = value
+    def isAborted(self):
+        return self.aborted
         
     def set_command(self,value):
         self.results.set_command(value)
     
     def run(self):
-        if not self.check_host():
-            return
-        self.login()
         self.run_command(self.results.get_command())
         self.ping()
-        self.logout()
-              
-    def login(self):
-        """Connect to a remote host and login.
-            
-        """
+        self.stop_proc()
+        self.quit()
 
-        log.debug("Making connection to remote host: %s with user: %s" % (self.results.get_host().getHostName(), self.results.get_host().getUserName()))
-        self.connection = self.ssh.connect(self.results.get_host().getHostName(),self.results.get_host().getPort(), self.results.get_host().getUserName(), self.results.get_host().getPassword(), timeout=5)
-        log.debug("Starting Shell!")
-        self.chan = self.ssh.invoke_shell()
-        log.debug("Connection established!")
     
     def run_command(self, command):
         """Run a command on the remote host.
@@ -111,38 +91,30 @@ class SSHController(Thread):
         @return: Command output
         @rtype: String
         """ 
-        log.debug("sending command: '%s' to host" % command)
-        self.chan.send(command+'\n')
-        time.sleep(int(self.config["init_timeout"]))
+        self.__ssh=self.results.get_host().getChannel()
+        if self.__ssh == None:
+            self.set_aborted(True)
+            return False
+        self.__chan=self.__ssh.invoke_shell()
+        self.log.debug("sending command: '%s' to host" % command.getCommand())
+        self.__chan.send(command.getCommand()+'\n')
+        time.sleep(int(HashCat.config["init_timeout"]))
         self.be_alive = True
         self.read_proc()
-        return self.chan.send_ready()
+        return self.__chan.send_ready()
     
-    def check_host(self):
-        log.debug("Start checking of host...")
-        try:
-            log.debug("Making connection to remote host: %s with user: %s" % (self.results.get_host().getHostName(), self.results.get_host().getUserName()))
-            self.connection = self.ssh.connect(self.results.get_host().getHostName(),self.results.get_host().getPort(), self.results.get_host().getUserName(), self.results.get_host().getPassword(), timeout=5)
-            log.debug("Starting Shell!")
-            self.chan = self.ssh.invoke_shell()
-            self.ssh.close()
-            log.debug("Host is alive and running!")
-        except Exception:
-            log.error("A connection to the host cannot be established!!!")
-            return False
-        return True
     
     def ping(self):
-        log.debug("Heartbeat is: %s and override is: %s" % (self.be_alive, self.aborted))
+        self.log.debug("Heartbeat is: %s and override is: %s" % (self.be_alive, self.aborted))
         while self.be_alive and not self.aborted:
             self.write_proc("s")
             self.read_proc()
-            log.debug("Sleeping for %d seconds" % self.interval)
+            self.log.debug("Sleeping for %d seconds" % self.interval)
             time.sleep(self.interval)
         
     def parse(self, lines):
         line_arr=lines.splitlines()
-        log.debug("Lines array: %s" % line_arr)
+        self.log.debug("Lines array: %s" % line_arr)
         for line in line_arr:
             if line.startswith("Status."):
                 self.results.set_status(line.split(":")[1].strip())
@@ -154,6 +126,7 @@ class SSHController(Thread):
                         self.be_alive=False
                         break
                     if case('Cracked'):
+                        self.getCrackCode()
                         self.be_alive=False
                         break
                     if case('Aborted'):
@@ -163,7 +136,7 @@ class SSHController(Thread):
                         self.be_alive=True
                         break
                     if case():
-                        log.warning("Unexpected value: %s" % self.status)
+                        self.log.warning("Unexpected value: %s" % self.__status)
                 continue 
             if line.startswith("Progress."):
                 try:
@@ -184,7 +157,7 @@ class SSHController(Thread):
                 if self.results.get_command_xcode()!=0:
                     self.results.set_status("Error")
                 continue
-            log.warning("Line cannot be recognized: %s" % line)
+            self.log.warning("Line cannot be recognized: %s" % line)
                 
     def parseTime(self,timeString):
         days=0
@@ -207,22 +180,22 @@ class SSHController(Thread):
         lines=''
         command="echo $?"
         self.write_proc("\b"*10)
-        log.debug("sending command: '%s' to host" % command)
-        self.chan.send(command+'\n')
+        self.log.debug("sending command: '%s' to host" % command)
+        self.__chan.send(command+'\n')
         while not [True for i in ["=> ","$ ","$ s","# ","# s","ss"] if lines.endswith(i)]:
-            if self.chan.recv_ready():
-                line=self.chan.recv(9999)
+            if self.__chan.recv_ready():
+                line=self.__chan.recv(9999)
                 lines=lines+''.join(line)
-        log.debug("Exit Code Line: %s" % lines)
+        self.log.debug("Exit Code Line: %s" % lines)
         line_arr=lines.splitlines()
         try:
             self.results.set_command_xcode(int(line_arr[1]))
         except:
-            log.exception("Line: %s - does not contain an integer value!!!" % line_arr[1])
-        log.debug("Exit Code is: %d" % self.results.get_command_xcode())
+            self.log.exception("Line: %s - does not contain an integer value!!!" % line_arr[1])
+        self.log.debug("Exit Code is: %d" % self.results.get_command_xcode())
     
     def stop_proc(self):
-        log.info("Sending stop command to process...")
+        self.log.info("Sending stop command to process...")
         self.be_alive = False
         self.write_proc("q")
         self.read_proc()
@@ -231,9 +204,9 @@ class SSHController(Thread):
         lines=''
         while not [True for i in ["=> ","$ ","$ s","# ","# s","ss"] if lines.endswith(i)]:
             try:
-                log.debug("Channel receive status: %s" % self.chan.recv_ready())
-                if self.chan.recv_ready():
-                    line=self.chan.recv(9999)
+                self.log.debug("Channel receive status: %s" % self.__chan.recv_ready())
+                if self.__chan.recv_ready():
+                    line=self.__chan.recv(9999)
                 else:
                     break
                 lines=lines+''.join(line)
@@ -242,23 +215,31 @@ class SSHController(Thread):
         self.parse(lines)
         
     def write_proc(self, message):
-        if self.chan.send_ready():
-            log.debug("Sending message: %s through the channel..." % message)
-            self.chan.send(message)
+        if self.__chan.send_ready():
+            self.log.debug("Sending message: %s through the channel..." % message)
+            self.__chan.send(message)
             return True
         else:
             return False
     
-    def get_result(self, lines):
+    def quit(self):
+        self.log.debug("Quitting thread on host %s ..."% self.results.get_host().getHostName())
+        self.results.get_host().closeChannel(self.__ssh)
+    
+    def getCrackCode(self):
+        #read code from file
+        cmdline=self.results.get_command().getCommand().split(" ")
+        for cmd in cmdline:
+            if cmd.startswith('--outfile'):
+                filename=cmd.split("=")[1]
+        if filename != None:
+            crackCode=self.results.get_host().getFile(filename)
+        if crackCode != None:
+            self.results.set_crackCode(crackCode)
+    
+    def get_result(self):
         return self.results
     
-    def logout(self):
-        """
-        Close the connection to the remote host.    
-        """
-        log.info("closing connection to host %s" % self.results.get_host().getHostName())
-        self.ssh.close()
-
 class switch(object):
     def __init__(self, value):
         self.value = value
@@ -279,7 +260,7 @@ class switch(object):
         else:
             return False
       
-class results():
+class results(object):
 
         def get_host(self):
             return self.host
@@ -291,7 +272,7 @@ class results():
             return self.command
 
         def get_status(self):
-            return self.status
+            return self.__status
 
         def get_progress(self):
             return self.progress
@@ -321,7 +302,7 @@ class results():
             self.command = value
 
         def set_status(self, value):
-            self.status = value
+            self.__status = value
 
         def set_progress(self, value):
             self.progress = value
@@ -340,18 +321,26 @@ class results():
 
         def set_last_output(self, value):
             self.last_output = value
+            
+        def get_crackCode(self):
+            return self.crackCode
+        
+        def set_crackCode(self,value):
+            self.crackCode = value
 
         def __init__(self):
             self.host = None
             self.command_xcode=0
             self.command = ''
-            self.status = ''
+            self.__status = ''
             self.progress = 0.0
             self.elapsed_time = ''
             self.estimated_time = ''
             self.be_alive = None
             self.aborted = None
             self.last_output = ''
+            self.crackCode=''
 
-        
+if __name__ == '__main__':
+    pass    
         

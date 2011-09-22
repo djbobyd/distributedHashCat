@@ -5,24 +5,17 @@ Created on Sep 4, 2011
 '''
 import os, thread, md5
 import restlite
-import sys
+import sys, ast
 from wsgiref.simple_server import make_server
+from submitMaster import SubmitMaster
+from Encryption import Encryption
+from Config import Config
 
 # The top-level directory for all file requests
 
 directory = '.'
-
-# The resource to get or set the top-level directory
-
-@restlite.resource
-def config():
-    def GET(request):
-        global directory
-        return request.response(('config', ('directory', directory)))
-    def PUT(request, entity):
-        global directory
-        directory = str(entity)
-    return locals()
+crypto=Encryption()
+config=Config.getConfig()
 
 # The resource to list all the file information under path relative to the top-level directory
 
@@ -56,22 +49,49 @@ def file(env, start_response):
     except: raise restlite.Status, '400 Error Reading File'
     return [result]
 
-# convert a Python object to resource
-
-users = [{'username': 'kundan', 'name': 'Kundan Singh', 'email': 'kundan10@gmail.com'}, {'username': 'alok'}]
-users = restlite.bind(users)
-
 # create an authenticated data model with one user and perform authentication for the resource
 
 model = restlite.AuthModel()
-model.register('kundan10@gmail.com', 'localhost', 'somepass')
+model.register('hashcat', 'localhost', crypto.decrypt(config['serverpass']))
+
 
 @restlite.resource
-def private():
+def stoptasks():
+    def POST(request,entity):
+        global model
+        model.login(request)
+        sm.stopTaskProcessing()
+        return request.response(('status','Initiated global stop!'))
+    return locals()
+
+@restlite.resource
+def starttasks():
+    def POST(request,entity):
+        global model
+        model.login(request)
+        sm.startTaskProcessing()
+        return request.response(('status','Initiated global start!'))
+    return locals()
+
+@restlite.resource
+def hash():
+    def POST(request, entity):
+        global model
+        model.login(request)
+        dic=ast.literal_eval(entity)
+        priority=dic["priority"]
+        hash=dic["hash"]
+        imei=dic["imei"]
+        sm.enqueueTask(imei,hash,priority)
+        return request.response(('hash','Accepted'))
+    return locals()
+
+@restlite.resource
+def progress():
     def GET(request):
         global model
         model.login(request)
-        return request.response(('path', request['PATH_INFO']))
+        return request.response(('progress',sm.getTasks()))
     return locals()
 
 # all the routes
@@ -79,14 +99,15 @@ def private():
 routes = [
     (r'GET,PUT,POST /(?P<type>((xml)|(plain)))/(?P<path>.*)', 'GET,PUT,POST /%(path)s', 'ACCEPT=text/%(type)s'),
     (r'GET,PUT,POST /(?P<type>((json)))/(?P<path>.*)', 'GET,PUT,POST /%(path)s', 'ACCEPT=application/%(type)s'),
-    (r'GET /config\?directory=(?P<directory>.*)', 'PUT /config', 'CONTENT_TYPE=text/plain', 'BODY=%(directory)s', config),
-    (r'GET,PUT,POST /config$', 'GET,PUT,PUT /config', config),
+    (r'POST /hash', hash),
+    (r'GET /progress', progress),
     (r'GET /files', files),
     (r'GET /file', file),
-    (r'GET /users', users),
-    (r'GET /private/', private)
+    (r'POST /stoptasks', stoptasks),
+    (r'POST /starttasks', starttasks)
 ]  
-
+sm=SubmitMaster()
+sm.start()
 httpd = make_server('', 8000, restlite.router(routes))
 try: httpd.serve_forever()
 except KeyboardInterrupt: pass      

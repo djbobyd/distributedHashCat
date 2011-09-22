@@ -20,9 +20,9 @@ class BTControl(Thread):
         Thread.__init__(self)    
         self.host_name = host_name
         self.user_name = user_name
-        self.password = password
-        self.port = 22  #default SSH port
-        self.chan = None
+        self.__password = password
+        self.__port = 22  #default SSH __port
+        self.__chan = None
         self.command = command
         self.connection = None
         self.ssh = paramiko.SSHClient()
@@ -49,9 +49,9 @@ class BTControl(Thread):
         #self.ssh.load_system_host_keys()
         #self.ssh.set_missing_host_key_policy(paramiko.WarningPolicy)
         log.debug("Making connection to remote host: %s with user: %s" % (self.host_name, self.user_name))
-        self.connection = self.ssh.connect(self.host_name,self.port, self.user_name, self.password, timeout=5)
+        self.connection = self.ssh.connect(self.host_name,self.__port, self.user_name, self.__password, timeout=5)
         log.debug("Starting Shell!")
-        self.chan = self.ssh.invoke_shell()
+        self.__chan = self.ssh.invoke_shell()
         log.debug("Connection established!")
 
     def run_command(self, command):
@@ -62,16 +62,16 @@ class BTControl(Thread):
         @rtype: String
         """ 
         log.debug("sending command: '%s' to host" % command)
-        self.chan.send(command+'\n')
+        self.__chan.send(command+'\n')
         time.sleep(5)
-        return self.chan.send_ready()
+        return self.__chan.send_ready()
     
     def check_host(self):
         try:
             log.debug("Making connection to remote host: %s with user: %s" % (self.host_name, self.user_name))
-            self.connection = self.ssh.connect(self.host_name,self.port, self.user_name, self.password, timeout=5)
+            self.connection = self.ssh.connect(self.host_name,self.__port, self.user_name, self.__password, timeout=5)
             log.debug("Starting Shell!")
-            self.chan = self.ssh.invoke_shell()
+            self.__chan = self.ssh.invoke_shell()
             self.ssh.close()
             log.debug("Host is alive and running!")
         except Exception:
