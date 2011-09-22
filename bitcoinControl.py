@@ -6,13 +6,11 @@ Created on Aug 22, 2011
 import paramiko ,os, getopt, sys
 import time, logging.config, yaml
 from threading import Thread
+from Encryption import Encryption
+from Config import Config
 
-config = yaml.load(open(os.path.join(os.path.dirname(__file__),'log.yml'), 'r'))
-logging.config.dictConfig(config)
-log = logging.getLogger('root')
-
-stream = file(os.path.join(os.path.dirname(__file__),'config.yml'), 'r')
-config = yaml.load(stream)
+config = Config().getConfig()
+log = Config().getLogger('root')
 
 class BTControl(Thread):
         
@@ -102,6 +100,7 @@ def main(argv):
         sys.exit(2)   
     
     global debug
+    debug=0
     
     for opt, arg in opts:                
         if opt in ("-h", "--help"):      
@@ -110,7 +109,6 @@ def main(argv):
         elif opt == '-d':                               
             debug = 1                  
 
-    global hash
     hash = "".join(args)
     
     if debug==1:
@@ -121,12 +119,14 @@ def main(argv):
     if len(hash)==0:
         print "No command provided"
         usage()
-        sys.exit(0)   
-        
-if __name__ == "__main__":
-    main(sys.argv[1:])
+        sys.exit(0)  
+    
+    return hash 
+
+def execute(hash):
     computer_list = config["hosts"]
-    log.debug("The command is: %s" % hash)
+    log.info("The command is: %s" % hash)
+    enc=Encryption()
     if hash == "start":
         command="bash /home/user/startpoc/sp1_as_user.sh"
     elif hash == "stop":
@@ -136,5 +136,8 @@ if __name__ == "__main__":
         usage()
         sys.exit(1)
     for host in computer_list:
-        RC=BTControl(host["name"], host["user"], host["pass"], command)
+        RC=BTControl(host["name"], host["user"], enc.decrypt(host["pass"]), command)
         RC.start()
+        
+if __name__ == "__main__":
+    execute(main(sys.argv[1:]))

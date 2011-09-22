@@ -40,6 +40,7 @@ from jobDistributor import JobDistributor
 from Config import Config
 from Persistence import DB
 from Task import Task, Priorities, States
+from bitcoinControl import execute
 
 log = Config().getLogger('submitMaster')
 config=Config().getConfig()
@@ -70,6 +71,11 @@ class SubmitMaster(Thread):
                 task=self.pq.get()
                 log.debug("Processing task "+ str(task))
                 self.__processTask(task)
+            else:
+                execute("start")                # Start bitcoins if there is no hash to brake
+                while self.__stopProcessing or self.pq.empty():
+                    time.sleep(5)               # Sleep untill 
+                execute("stop")                 # Stop bitcoins and continue with hash tasks
             time.sleep(5)
     
     def __loadQueue(self):
