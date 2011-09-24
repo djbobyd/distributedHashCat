@@ -140,7 +140,7 @@ class HashCat(Thread):
                 continue 
             if line.startswith("Progress."):
                 try:
-                    self.results.set_progress(float(line[line.find("(")+1:-1]))
+                    self.results.set_progress(float(line[line.find("(")+1:-2]))
                 except:
                     self.results.set_progress(-1.0)
                 continue

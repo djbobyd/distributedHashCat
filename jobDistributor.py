@@ -220,18 +220,13 @@ class JobDistributor(object):
         for host in self.__processes:
             for job in self.__processes[host]:
                 allProgress.append(job.getStatus().get_progress())    
-        maxNumber=0.0
-        fraction=0.0
-        lenght=sum([len(plist) for plist in self.__processes.values()])
+        maxNumber=0.00
+        fraction=0.00
         for i in allProgress:
             if i>maxNumber:
                 maxNumber=math.modf(i)[1]
             fraction=fraction+math.modf(i)[0]
-        maxNumber=maxNumber + 1 - lenght
-        if lenght==0:
-            self.__totalProgress=0
-        else:
-            self.__totalProgress = maxNumber + fraction
+        self.__totalProgress = maxNumber + fraction
     
     def __getHostfromList(self,host):
         for hostInfo in self.computer_list:

@@ -2,3 +2,5 @@
 /encryption.key
 /hash.db
 /logs
+/config.yml
+/log.yml
