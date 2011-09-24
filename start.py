@@ -124,5 +124,5 @@ on the host machines.
 #    print(comm)
 log.info("Sending command list to Submit Master...")
 #processCommandsInParallel(commands)
-processCommandsInParallel(createCommandList())
+#processCommandsInParallel(createCommandList())
 #print createCommandList()

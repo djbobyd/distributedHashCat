@@ -5,7 +5,8 @@ Created on Sep 20, 2011
 '''
 from Crypto.Cipher import AES
 import base64
-import os, string, random
+import os, string, random, getopt, sys
+
 
 class Encryption(object): 
     # the block size for the cipher object; must be 16, 24, or 32 for AES
@@ -41,3 +42,49 @@ class Encryption(object):
         return self.__EncodeAES(self.__cipher, plainPass)
     def decrypt(self,cryptPass):
         return self.__DecodeAES(self.__cipher, cryptPass)
+
+
+def usage():
+    print "Usage:  command [flags] string"
+    print "Flags available:"
+    print "    -h help"
+    print "    -d decrypt the given password"
+    print "    -e encrypt the given text"
+
+def main(argv):                         
+    
+    action=''
+    string=''
+                     
+    try:                                
+        opts, args = getopt.getopt(argv, "hed", ["help", "encrypt" , "decrypt"]) 
+    except getopt.GetoptError:           
+        usage()                          
+        sys.exit(2)   
+    
+    global debug
+    
+    for opt, arg in opts:                
+        if opt in ("-h", "--help"):      
+            usage()                     
+            sys.exit()                                   
+        elif opt in ("-d", "--decrypt"): 
+            action="Decrypt"
+        elif opt in ("-e", "--encrypt"): 
+            action="Encrypt"             
+
+    string = "".join(args)
+
+    if len(string)==0:
+        print "No password for processing has been provided! Exiting..."
+        usage()
+        sys.exit(0)
+    
+    enc=Encryption()
+    if action=="Decrypt":    
+        print enc.decrypt(string)
+    elif action=="Encrypt":
+        print enc.encrypt(string)
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
