@@ -4,9 +4,8 @@ Created on Sep 4, 2011
 @author: boby
 '''
 import unittest
-from jobDistributor import *
-from HashCat import *
-from Task import Task, Priorities
+from Host import Host 
+from Task import Task, Priorities, Command
 
 class TestJobDistributor(unittest.TestCase):
 
@@ -77,6 +76,11 @@ class TestCommand(unittest.TestCase):
         pass
     def tearDown(self):
         pass
+    
+    def testEnv(self):
+        envList=[("DISPLAY",":0"),("LD_LIBRARY_PATH","/opt/AMD-APP-SDK-v2.4-lnx64/lib/x86_64")]
+        cmd=Command("some command", envList)
+        self.assertTrue(cmd.getCommand().find("DISPLAY")!=-1 and cmd.getCommand().find("/opt/AMD-APP-SDK-v2.4-lnx64/lib/x86_64")!=-1, "Environment is not correctly configured!!!")
 
 class TestTask(unittest.TestCase):
     

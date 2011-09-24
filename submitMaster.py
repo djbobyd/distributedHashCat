@@ -66,7 +66,7 @@ class SubmitMaster(Thread):
     def run(self):
         # Load initial queue from DB on start
         self.__loadQueue()
-        while self.__quit:
+        while not self.__quit:
             log.debug("Queue is %s and Status is %s"%(self.pq.empty(), self.__stopProcessing)) 
             if not self.pq.empty() and not self.__stopProcessing:
                 task=self.pq.get()
@@ -162,7 +162,7 @@ class SubmitMaster(Thread):
         return response
     
     def quit(self):
-        self.JD.stopAll()
+        self.__stopProcessing=True
         self.__quit=True
 
 if __name__ == '__main__':

@@ -53,7 +53,7 @@ def file(env, start_response):
 # create an authenticated data model with one user and perform authentication for the resource
 
 model = restlite.AuthModel()
-model.register('hashcat', 'localhost', crypto.decrypt(config['serverpass']))
+model.register('hashcat', 'localhost', crypto.decrypt(config['serverPass']))
 
 
 @restlite.resource
@@ -109,7 +109,7 @@ routes = [
 ]  
 sm=SubmitMaster()
 sm.start()
-httpd = make_server('', 8000, restlite.router(routes))
+httpd = make_server(config["serverHost"], config["serverPort"], restlite.router(routes))
 try: 
     httpd.serve_forever()
 except KeyboardInterrupt:

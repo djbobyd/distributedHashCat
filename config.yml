@@ -1,8 +1,11 @@
 hosts: [{name: "host1", user: "user1", pass: "4r9NwaQBt1T3L17XzDw9FNg55k4mP7ZoKdwZwKN3NLA="},
         {name: "host2", user: "user2", pass: "4r9NwaQBt1T3L17XzDw9FNg55k4mP7ZoKdwZwKN3NLA="}]
-env: [{name: " ", value: " "},
-      {name: " ", value: " "}]
-serverpass: "4r9NwaQBt1T3L17XzDw9FNg55k4mP7ZoKdwZwKN3NLA="
+env: [{name: "", value: ""},
+      {name: "", value: ""}]
+serverPass: "4r9NwaQBt1T3L17XzDw9FNg55k4mP7ZoKdwZwKN3NLA="
+serverHost: ''
+serverPort: 8000
+executable: "oclHashcat-lite64.bin"
 heartbeat_timeout: 30
 init_timeout: 40
 poll_timeout: 20

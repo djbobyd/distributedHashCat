@@ -20,7 +20,7 @@ class Command(object):
             return self.cmd
         else:
             for var in self.env:
-                command=var[0]+'='+var[1]+' '
+                command=command+var[0]+'='+var[1]+' '
             return command+self.cmd
     def __str__(self):
         return "Command is %s" % self.cmd
@@ -47,7 +47,7 @@ class Task(object):
         Task.__fillInstance(task,text)
         return task
     
-    def __init__(self, imei, hash, priority=Priorities.Low, executable="oclHashcat-lite64.bin"):
+    def __init__(self, imei, hash, priority=Priorities.Low, executable=config["executable"]):
         self.__exec=executable
         self.__prio=Priorities.__enum__(int(priority))
         self.__hash=hash
@@ -132,7 +132,7 @@ class Task(object):
         envList=[]
         env=config['env']
         for envItem in env:
-            if envItem["value"]!= " ":
+            if envItem["value"]!= "":
                 envList.append((envItem["name"],envItem["value"]))
         hashIMEI=str(self.__hash)+":00"+str(self.__imei)[:-1]+"00"
         for i in range(100):
