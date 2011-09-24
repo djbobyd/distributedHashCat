@@ -45,7 +45,7 @@ class Encryption(object):
 
 
 def usage():
-    print "Usage:  command [flags] string"
+    print "Usage:  %s [flags] string"% os.path.basename(__file__)
     print "Flags available:"
     print "    -h help"
     print "    -d decrypt the given password"

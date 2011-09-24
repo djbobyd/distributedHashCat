@@ -3,8 +3,7 @@ Created on Aug 22, 2011
 
 @author: boby
 '''
-import paramiko ,os, getopt, sys
-import time, logging.config, yaml
+import paramiko ,os, getopt, sys, time, logging
 from threading import Thread
 from Encryption import Encryption
 from Config import Config
