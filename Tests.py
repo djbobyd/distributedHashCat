@@ -6,6 +6,7 @@ Created on Sep 4, 2011
 import unittest
 from jobDistributor import *
 from HashCat import *
+from Task import Task, Priorities
 
 class TestJobDistributor(unittest.TestCase):
 
@@ -69,7 +70,29 @@ class TestHost(unittest.TestCase):
         self.host.addProcess()
         self.host.delProcess()
         self.assertTrue(self.host.getStatus() == Host.States.Running, "Host process are not reported!!!")
+
+class TestCommand(unittest.TestCase):
+    
+    def setUp(self):
+        pass
+    def tearDown(self):
+        pass
+
+class TestTask(unittest.TestCase):
+    
+    def setUp(self):
+        pass
         
+    def tearDown(self):
+        pass
+    
+    def testHashCreation(self):
+        task=Task("123", "4567890", Priorities.Critical, "oclHashcat-lite64.bin")
+        cmds=task.createCommandList()
+        self.assertTrue(cmds[0].getCommand().find("4567890:001200")!=-1, "Hash is not calculated right!!!")
+  
 suite = unittest.TestLoader().loadTestsFromTestCase(TestJobDistributor)
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestHost))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestCommand))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTask))
 unittest.TextTestRunner(verbosity=2).run(suite)

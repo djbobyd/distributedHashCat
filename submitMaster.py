@@ -61,21 +61,22 @@ class SubmitMaster(Thread):
         self.pq=PriorityQueue(100)
         self.JD = JobDistributor()
         self.__stopProcessing=False
+        self.__quit=False
     
     def run(self):
         # Load initial queue from DB on start
         self.__loadQueue()
-        while True:
+        while self.__quit:
             log.debug("Queue is %s and Status is %s"%(self.pq.empty(), self.__stopProcessing)) 
             if not self.pq.empty() and not self.__stopProcessing:
                 task=self.pq.get()
                 log.debug("Processing task "+ str(task))
                 self.__processTask(task)
             else:
-                execute("start")                # Start bitcoins if there is no hash to brake
+                #execute("start")                # Start bitcoins if there is no hash to brake
                 while self.__stopProcessing or self.pq.empty():
                     time.sleep(5)               # Sleep untill 
-                execute("stop")                 # Stop bitcoins and continue with hash tasks
+                #execute("stop")                 # Stop bitcoins and continue with hash tasks
             time.sleep(5)
     
     def __loadQueue(self):
@@ -147,7 +148,7 @@ class SubmitMaster(Thread):
             self.pq.put(task)
         db.updateTask(task)
         db.close()
-
+    
     def getTasks(self):
         db = DB()
         db.connect()
@@ -159,6 +160,10 @@ class SubmitMaster(Thread):
         #Return a tuple of all tasks and their parameters. To be used in a call to the DHServer
         print tuple(response)
         return response
+    
+    def quit(self):
+        self.JD.stopAll()
+        self.__quit=True
 
 if __name__ == '__main__':
     pass

@@ -16,6 +16,7 @@ from Config import Config
 directory = '.'
 crypto=Encryption()
 config=Config.getConfig()
+log=Config().getLogger('root')
 
 # The resource to list all the file information under path relative to the top-level directory
 
@@ -109,5 +110,9 @@ routes = [
 sm=SubmitMaster()
 sm.start()
 httpd = make_server('', 8000, restlite.router(routes))
-try: httpd.serve_forever()
-except KeyboardInterrupt: pass      
+try: 
+    httpd.serve_forever()
+except KeyboardInterrupt:
+    log.info("Keyboard interrupted")
+    sm.quit()
+    sys.exit(0)
