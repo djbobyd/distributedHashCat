@@ -57,6 +57,7 @@ class HashCat(Thread):
         self.interval = int(HashCat.config["heartbeat_timeout"])
         self.be_alive = False
         self.aborted = False
+        self.__channelLostCount=0
 
     def get_command_xcode(self):
         return self.results.get_command_xcode()
@@ -78,9 +79,9 @@ class HashCat(Thread):
         self.results.set_command(value)
     
     def run(self):
-        self.run_command(self.results.get_command())
-        self.ping()
-        self.stop_proc()
+        if self.run_command(self.results.get_command()):
+            self.ping()
+            self.stop_proc()
         self.quit()
 
     
@@ -93,7 +94,6 @@ class HashCat(Thread):
         """ 
         self.__ssh=self.results.get_host().getChannel()
         if self.__ssh == None:
-            self.set_aborted(True)
             return False
         self.__chan=self.__ssh.invoke_shell()
         self.log.debug("sending command: '%s' to host" % command.getCommand())
@@ -208,10 +208,14 @@ class HashCat(Thread):
                 if self.__chan.recv_ready():
                     line=self.__chan.recv(9999)
                 else:
+                    self.__channelLostCount+=1
                     break
                 lines=lines+''.join(line)
             except (RuntimeError, IOError):
                 print "Stream not ready!!!"
+        if self.__channelLostCount>=10:
+            self.abort(True)
+            self.quit()
         self.parse(lines)
         
     def write_proc(self, message):
@@ -224,7 +228,8 @@ class HashCat(Thread):
     
     def quit(self):
         self.log.debug("Quitting thread on host %s ..."% self.results.get_host().getHostName())
-        self.results.get_host().closeChannel(self.__ssh)
+        if self.__ssh!= None:
+            self.results.get_host().closeChannel(self.__ssh)
     
     def getCrackCode(self):
         #read code from file
