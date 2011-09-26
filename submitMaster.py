@@ -124,7 +124,8 @@ class SubmitMaster(Thread):
                 self.JD.distribute(jobQueue.get())
             log.debug("Turning errors back to command queue.")
             while self.JD.getErrors() != 0:
-                jobQueue.put(self.JD.getErrorJob())
+                log.debug("Errors are: %s"%self.JD.getErrors())
+                jobQueue.put(self.JD.getErrorJob(), block=False)
             #update task status
             log.debug("Updating task status in the DB.")
             task.setProgress(self.JD.getProgress())

@@ -82,8 +82,9 @@ class Host(object):
         """
         Close the connection to the remote host.    
         """
-        self.log.info("closing connection to host %s" % self.__hostName)
+        self.log.info("Closing connection to host %s" % self.__hostName)
         ssh.close()
+        self.log.debug("Connection closed!")
     
     def getHostName(self):
         return self.__hostName
@@ -100,6 +101,7 @@ class Host(object):
     def getStatus(self):
         return self.__status
     def addError(self):
+        self.log.debug("Adding error to host")
         if self.__errors<self.__maxErrors:
             self.log.debug("Error added to host!")
             self.__errors+=1
@@ -107,12 +109,14 @@ class Host(object):
         return False
             
     def addProcess(self):
+        self.log.debug("Adding process to host")
         if self.__processes<self.__maxProcess:
             self.log.debug("Process added to host!")
             self.__processes+=1
             return self.__stateSystem()
         return False
     def delProcess(self):
+        self.log.debug("Removing process from host")
         if self.__processes>0:
             self.log.debug("Process removed from host!")
             self.__processes-=1

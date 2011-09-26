@@ -136,7 +136,7 @@ class Task(object):
                 envList.append((envItem["name"],envItem["value"]))
         hashIMEI=str(self.__hash)+":00"+str(self.__imei)[:-1]+"00"
         for i in range(100):
-            command=self.__exec+" "+hashIMEI+" -m 1900 -n 160 --pw-skip="+str(self.__calculateStart(i))+" --pw-limit="+str(self.__calculateEnd(i+1))+" --restore-timer=5 --gpu-watchdog=100 --outfile-format=1 --outfile="+self.__outFile+" -1 00010203040506070809 ?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1"
+            command = "%s %s -m %s -n %s --pw-skip=%i --pw-limit=%i --restore-timer=5 --gpu-watchdog=%s --outfile-format=1 --outfile=%s -1 00010203040506070809 ?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1"%(self.__exec,hashIMEI,config["hashcatType"],config["hashcatGPULoad"],self.__calculateStart(i),self.__calculateEnd(i+1),config["hashcatGPUTemp"],self.__outFile)
             cmdList.append(Command(command,envList))
         #log.debug(cmdList)
         return cmdList

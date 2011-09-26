@@ -14,7 +14,7 @@ class Config(object):
     if not os.path.exists('logs'):
         os.makedirs('logs')
     for host in __list:
-        __conf["handlers"][host["name"]+"_file"]={'filename': 'logs/'+host["name"]+'.log', 'formatter': 'detailed', 'backupCount': 3, 'class': 'logging.handlers.RotatingFileHandler', 'maxBytes': 1000000}
+        __conf["handlers"][host["name"]+"_file"]={'filename': 'logs/'+host["name"]+'.log', 'formatter': 'detailed', 'backupCount': 10, 'class': 'logging.handlers.RotatingFileHandler', 'maxBytes': 1000000}
         __conf["loggers"]["distributor."+host["name"]]={'level': 'DEBUG', 'propagate': False, 'handlers': ['console', host["name"]+'_file']}
     logging.config.dictConfig(__conf)
     

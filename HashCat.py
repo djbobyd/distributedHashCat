@@ -207,10 +207,10 @@ class HashCat(Thread):
                 self.log.debug("Channel receive status: %s" % self.__chan.recv_ready())
                 if self.__chan.recv_ready():
                     line=self.__chan.recv(9999)
+                    lines=lines+''.join(line)
                 else:
                     self.__channelLostCount+=1
                     break
-                lines=lines+''.join(line)
             except (RuntimeError, IOError):
                 print "Stream not ready!!!"
         if self.__channelLostCount>=10:

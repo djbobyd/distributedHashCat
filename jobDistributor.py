@@ -53,6 +53,7 @@ class Job(object):
         self.poll()
 
     def poll(self):
+        log.debug("Job status is: %s"%self.HC.isAlive())
         if not self.HC.isAlive() or self.HC.isAborted():
             log.debug("Waiting for thread to finish...")
             self.HC.join()
@@ -90,7 +91,7 @@ class JobDistributor(object):
         return self.errorQueue.qsize()
     
     def getErrorJob(self):
-        return self.errorQueue.get()
+        return self.errorQueue.get(block=False)
     
     def getResultCode(self):
         return self._status['result'].get_crackCode()
@@ -99,8 +100,10 @@ class JobDistributor(object):
         return self.__totalProgress
 
     def isFull(self):
-        log.debug("Length is: %i  Processes: %i"%(len(self), len(self.__processes)*self.__maxJobs))
-        return len(self) == len(self.__processes)*self.__maxJobs
+        processes=len(self)
+        maxProcess=len(self.__processes)*self.__maxJobs
+        log.debug("Length is: %i  Processes: %i"%(processes, maxProcess))
+        return processes == maxProcess
     
     def isDone(self):
         return self.__status['cracked']
@@ -116,27 +119,20 @@ class JobDistributor(object):
 
     def distribute(self, command):
         procNum = self.totalJobs
+        host=None
+        sleepTime=0
+        maxSleepTime=config["maxHostWait"]
         #Simplified for now.  Just to see if the data all works.
         log.info('Searching for host for process %i...' % (procNum))
-        hostFound = False
-        waitCycles = 0
-        while not hostFound:
-            try:
-                host = self.__getHost()
-                log.info('Host %s chosen for proc %i.' % (host.getHostName(), procNum))
-                hostFound = True
-                break
-            except ValueError:
-                log.exception('%sWaiting to find host for proc %i.' % \
-                      ('.'*waitCycles, procNum))
-                waitCycles += 1
-                time.sleep(waitCycles)
-                #The exception here should not happen, because the
-                #submitMaster that calls this ensures there is
-                #availability.  This will hang if it was mistaken.
-
-        log.info('Submited to ' + host.getHostName() + ': ' + command.getCommand())
+        while host==None:
+            log.debug("Waiting %i seconds for available host!"%sleepTime)
+            time.sleep(sleepTime)
+            if sleepTime<maxSleepTime:
+                sleepTime+=10
+            host = self.__getHost()   
+        log.info('Host %s chosen for proc %i.' % (host.getHostName(), procNum))
         self.__processes[host.getHostName()].append(Job(host,command))
+        log.info('Submited to ' + host.getHostName() + ': ' + command.getCommand())
         self.totalJobs += 1
 
     def __getHost(self):
@@ -150,10 +146,8 @@ class JobDistributor(object):
             log.debug("Checking host %s" % hostInfo.getHostName())
             if hostInfo.getStatus() in [Host.States.Available, Host.States.Running]:
                 return hostInfo
-            else:
-                log.error('__getHost() error: host %s not available.' % (host))
-                    
-        raise ValueError('__getHost() failed: could not find host.')
+        return None     
+
 
     def __getHostfromConfig(self,maxProcess, maxError):
         list = config["hosts"]
@@ -167,7 +161,7 @@ class JobDistributor(object):
         log.debug("Total number of hosts is: %i" % len(pcList))
         return pcList
 
-    def __str__(self):
+    def __str__1(self):
         if self.__cleanup()==0:
             if self.__status["cracked"]:
                 return 'JobDistributor: !!! hash cracked !!! result available on host: '+self.__status["result"].get_host().getHostName()
@@ -181,39 +175,40 @@ class JobDistributor(object):
         return self.__cleanup()
 
     def __cleanup(self):
-        log.debug("Cleaning dead hosts...")
-        self.__cleanDeadHosts()
-        log.debug("cleaning finished jobs...")
-        for host in self.__processes:
-            for job in self.__processes[host]:
-                # check for errors
-                if job.getStatus().get_command_xcode()!=0:
-                    self.errorQueue.put(job.getStatus().get_command())
-                # check for crack code
-                if job.getStatus().get_status() == "Cracked":
-                    self.__status['cracked']=True
-                    self.__status['result']=job.getStatus()
-            #clean up finished processes.
-            self.__processes[host] = [job for job in self.__processes[host] if job.poll()]
+        processes={}
+        for host in self.computer_list:
+            if host.checkHost() and host.getStatus() != Host.States.Error:
+                if host.getStatus() in (Host.States.Running, Host.States.Full):
+                        if self.__processes.has_key(host.getHostName()):
+                            jobs=[]
+                            for job in self.__processes[host.getHostName()]:
+                                if job.poll():
+                                    jobs.append(job) 
+                                else:
+                                    if job.getStatus().get_command_xcode()!=0:  # check for errors
+                                        self.errorQueue.put(job.getStatus().get_command())
+                                    # check for crack code
+                                    if job.getStatus().get_status() == "Cracked":
+                                        self.__status['cracked']=True
+                                        self.__status['result']=job.getStatus()
+                            processes[host.getHostName()]=jobs
+                else:
+                    #add empty proc list
+                    processes[host.getHostName()]=[]
+            else:
+                if self.__processes.has_key(host.getHostName()):
+                    for job in self.__processes[host.getHostName()]:
+                        #add to error queue
+                        job.terminate()
+                        self.errorQueue.put(job.getStatus().get_command())
+        self.__processes=processes
         self.__calculateProgress()
         # stop all running jobs in case crack is found
         if self.__status['cracked']:
             self.stopAll()
-        return sum([len(plist) for plist in self.__processes.values()])
+        tmp=sum([len(plist) for plist in self.__processes.values()])
+        return tmp
     
-    def __cleanDeadHosts(self):
-        for host in self.computer_list:
-            log.debug("checking host %s"%host.getHostName())
-            if host.checkHost():
-                log.debug("Host is alive")
-                if host.getStatus() in (Host.States.Running, Host.States.Full):
-                    log.debug("Host has some jobs running on.")
-                    self.__processes[host.getHostName()]=self.__processes[host.getHostName()]
-                    continue
-                if host.getStatus() == Host.States.Error:
-                    log.debug("Host has too many errors, skipping...")
-                    continue
-                self.__processes[host.getHostName()] = []
     
     def __calculateProgress(self):
         allProgress=[]
@@ -227,7 +222,7 @@ class JobDistributor(object):
                 maxNumber=math.modf(i)[1]
             fraction=fraction+math.modf(i)[0]
         self.__totalProgress = maxNumber + fraction
-    
+            
     def __getHostfromList(self,host):
         for hostInfo in self.computer_list:
             if hostInfo.getHostName() == host:
