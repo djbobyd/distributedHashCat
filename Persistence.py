@@ -31,11 +31,11 @@ class DB(object):
         return Task.deserialize(text)   
     
     def addTask(self,Tsk):
-        try:
+        if self.getTaskByID(Tsk.getIMEI,Tsk.getHash) == None:
             self.__cursor.execute('INSERT INTO tasks(tsk) VALUES (?)',(Tsk,))
             self.__connection.commit()
             return True
-        except sqlite3.IntegrityError:
+        else:
             log.debug("Task already exist in DB!")
             return False
     
