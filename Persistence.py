@@ -43,10 +43,6 @@ class DB(object):
         self.__cursor.execute("DELETE FROM tasks WHERE tsk LIKE ?",('%'+str(imei)+'|'+str(hash)+'%',))
         self.__connection.commit()
     
-    def delTask(self,Tsk):
-        self.__cursor.execute("DELETE FROM tasks WHERE tsk = (?)",(Tsk.serialize(),))
-        self.__connection.commit()
-    
     def getTaskByID(self,imei,hash):
         self.__cursor.execute("SELECT tsk FROM tasks WHERE tsk LIKE ?",('%'+str(imei)+'|'+str(hash)+'%',))
         try:
@@ -55,6 +51,13 @@ class DB(object):
         except:
             log.debug("No element with imei: %s and hash: %s found"%(imei,hash))
             return None
+    
+    def getTasksWithID(self,hashID):
+        #TODO test this method
+        resultTSK=[]
+        for item in hashID:
+            resultTSK.append(self.getTaskByID(item["imei"],item["hash"]))
+        return resultTSK
     
     def getAllTasks(self):
         self.__cursor.execute("SELECT tsk FROM tasks")

@@ -42,29 +42,41 @@ def starttasks():
     return locals()
 
 @restlite.resource
-def hash():
+def job():
     def POST(request, entity):
         model.login(request)
-        dic=ast.literal_eval(entity)
-        priority=dic["priority"]
-        hash=dic["hash"]
-        imei=dic["imei"]
-        sm.enqueueTask(imei,hash,priority)
-        return request.response(('hash','Accepted'))
+        try:
+            dic=ast.literal_eval(entity)
+            priority=dic["priority"]
+            hash=dic["hash"]
+            imei=dic["imei"]
+        except:
+            log.error("Wrong input format: %s"%entity)
+            return request.response(('status','False'))
+        if len(imei) != 0 and len(hash) != 0:
+            return request.response(('status',sm.enqueueTask(imei,hash,priority)))
+        else:
+            log.error("one of the mandatory parameters was not present. hash is: %s , imei is: %s"%(hash,imei))
+            return request.response(('status','False'))
     return locals()
 
 @restlite.resource
 def progress():
-    def GET(request):
+    def POST(request, entity):
         model.login(request)
-        return request.response(('progress',sm.getTasks()))
+        try:
+            dic=ast.literal_eval(entity)
+        except:
+            log.error("Wrong input format: %s"%entity)
+            return request.response(('progress','False'))
+        return request.response(('progress',sm.getTasks(dic["progress"])))
     return locals()
 
 # all the routes
 
 routes = [
-    (r'POST /hash', hash),
-    (r'GET /progress', progress),
+    (r'POST /job', job),
+    (r'POST /progress', progress),
     (r'POST /stoptasks', stoptasks),
     (r'POST /starttasks', starttasks)
 ]  

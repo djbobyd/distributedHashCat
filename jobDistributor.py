@@ -79,7 +79,8 @@ class JobDistributor(object):
     def __init__(self):
         self.__maxJobs = config["hostJobs"]
         self.__maxErrors = config["hostErrors"]
-        self.errorQueue = Queue(100)  
+        self.errorQueue = Queue(100)
+        self.doneQueue = Queue(100)  
         self.totalJobs = 0
         self.instances = 0
         self.__status = {"cracked":False,"result":results()}
@@ -89,9 +90,13 @@ class JobDistributor(object):
     
     def getErrors(self):
         return self.errorQueue.qsize()
+    def getDoneNumber(self):
+        return self.doneQueue.qsize()
     
     def getErrorJob(self):
         return self.errorQueue.get(block=False)
+    def getCompletedJob(self):
+        return self.doneQueue.get(block=False)
     
     def getResultCode(self):
         return self._status['result'].get_crackCode()
@@ -191,6 +196,7 @@ class JobDistributor(object):
                                     if job.getStatus().get_status() == "Cracked":
                                         self.__status['cracked']=True
                                         self.__status['result']=job.getStatus()
+                                    self.doneQueue.put(job.getStatus().get_command())
                             processes[host.getHostName()]=jobs
                 else:
                     #add empty proc list

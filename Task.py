@@ -11,19 +11,27 @@ log = Config().getLogger('submitMaster.Task')
 config = Config().getConfig()
 
 class Command(object):
-    def __init__(self,cmd,env=[]):
-        self.cmd=cmd
-        self.env=env
+    def __init__(self,cmd,id,env=[]):
+        self.__cmd=cmd
+        self.__env=env
+        self.__id=id
+        
+    def getID(self):
+        return self.__id
+    def setID(self,id):
+        self.__id=id
     def getCommand(self):
         command=''
-        if self.env==[]:
-            return self.cmd
+        if self.__env==[]:
+            return self.__cmd
         else:
-            for var in self.env:
+            for var in self.__env:
                 command=command+var[0]+'='+var[1]+' '
-            return command+self.cmd
+            return command+self.__cmd
     def __str__(self):
-        return "Command is %s" % self.cmd
+        return "Command is %s" % self.__cmd
+    def __repr__(self):
+        return self.__cmd
 
 class Priorities(Enum):
     Low=50
@@ -60,9 +68,9 @@ class Task(object):
         self.__completionTime=None
         self.__status=States.Pending
         self.__progress=0.0
+        self.__jobList=range(100)
 
     def __fillInstance(self,text):
-        print text
         text=text.split('|')
         self.__exec=text[0]
         self.__prio=getattr(Priorities,text[1].split(".")[1])
@@ -76,6 +84,8 @@ class Task(object):
         self.__completionTime=time.strftime(text[9])
         self.__status=getattr(States,text[10].split(".")[1])
         self.__progress=float(text[11])
+        self.__jobList= [int(i) for i in text[12][1:-1].split(",")]
+        
     
     def __cmp__(self,other):
         if self.__prio==other.__prio:
@@ -87,9 +97,11 @@ class Task(object):
     
     def __repr__(self):
         return "(%s|%s)" % (self.__imei, self.__hash)
+    def __str__(self):
+        return self.serialize()
     
     def serialize(self):
-        return "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s"%(self.__exec,self.__prio,self.__imei,self.__hash,self.__taskID,self.__code,self.__outFile,self.__creationTime,self.__startTime,self.__completionTime,self.__status,self.__progress)
+        return "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s"%(self.__exec,self.__prio,self.__imei,self.__hash,self.__taskID,self.__code,self.__outFile,self.__creationTime,self.__startTime,self.__completionTime,self.__status,self.__progress,self.__jobList)
     
     def __calculateStart(self,percent):
         return percent*1000000000
@@ -115,6 +127,11 @@ class Task(object):
     def getCode(self):
         return self.__code
     
+    def delJobID(self,id):
+        self.__jobList.pop(id)
+    def addJobID(self):
+        self.__jobList.append(id)
+    
     def setCode(self,value):
         self.__code=value
     def setStatus(self,status):
@@ -135,8 +152,7 @@ class Task(object):
             if envItem["value"]!= "":
                 envList.append((envItem["name"],envItem["value"]))
         hashIMEI=str(self.__hash)+":00"+str(self.__imei)[:-1]+"00"
-        for i in range(100):
+        for i in self.__jobList:
             command = "%s %s -m %s -n %s --pw-skip=%i --pw-limit=%i --restore-timer=5 --gpu-watchdog=%s --outfile-format=1 --outfile=%s -1 00010203040506070809 ?1?1?1?1?1?1?1?1?1?1?1?1?1?1?1"%(self.__exec,hashIMEI,config["hashcatType"],config["hashcatGPULoad"],self.__calculateStart(i),self.__calculateEnd(i+1),config["hashcatGPUTemp"],self.__outFile)
-            cmdList.append(Command(command,envList))
-        #log.debug(cmdList)
+            cmdList.append(Command(command,i,envList))
         return cmdList

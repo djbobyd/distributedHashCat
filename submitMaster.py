@@ -95,9 +95,10 @@ class SubmitMaster(Thread):
         db=DB()
         db.connect()
         task=Task(imei, hash, priority)
-        db.addTask(task)
-        self.pq.put(task)
+        status=db.addTask(task)
+        if status: self.pq.put(task)
         db.close()
+        return status
     
     def stopTaskProcessing(self):
         log.debug("Setting Stop Processing to True")
@@ -122,10 +123,12 @@ class SubmitMaster(Thread):
             if not self.JD.isFull():
                 log.debug("Sending command to JobDistributor.")
                 self.JD.distribute(jobQueue.get())
-            log.debug("Turning errors back to command queue.")
+            log.debug("Turning errors back to command queue.Number of errors is %s"%self.JD.getErrors())
             while self.JD.getErrors() != 0:
-                log.debug("Errors are: %s"%self.JD.getErrors())
                 jobQueue.put(self.JD.getErrorJob(), block=False)
+            log.debug("Getting completed jobs.Current completed jobs are %s"%self.JD.getDoneNumber())
+            while self.JD.getDoneNumber() != 0:
+                task.delJobID(self.JD.getCompletedJob(), block=False)
             #update task status
             log.debug("Updating task status in the DB.")
             task.setProgress(self.JD.getProgress())
@@ -151,11 +154,11 @@ class SubmitMaster(Thread):
         db.updateTask(task)
         db.close()
     
-    def getTasks(self):
+    def getTasks(self,tskList):
         db = DB()
         db.connect()
         response=[]
-        tasks=db.getAllTasks()
+        tasks=db.getTasksWithID(tskList)
         for task in tasks:
             response.append({'imei':task.getIMEI(),'hash':task.getHash(),'code':task.getCode(),'status':str(task.getStatus()),'progress':task.getProgress()})
         db.close()

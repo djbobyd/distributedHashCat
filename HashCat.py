@@ -157,7 +157,7 @@ class HashCat(Thread):
                 if self.results.get_command_xcode()!=0:
                     self.results.set_status("Error")
                 continue
-            self.log.warning("Line cannot be recognized: %s" % line)
+            #self.log.debug("Line cannot be recognized: %s" % line)
                 
     def parseTime(self,timeString):
         days=0
