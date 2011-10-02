@@ -166,7 +166,6 @@ class SubmitMaster(Thread):
             response.append({'imei':task.getIMEI(),'hash':task.getHash(),'code':task.getCode(),'status':str(task.getStatus()),'progress':task.getProgress()})
         db.close()
         #Return a tuple of all tasks and their parameters. To be used in a call to the DHServer
-        print tuple(response)
         return response
     
     def quit(self):
