@@ -5,7 +5,7 @@ Created on Sep 4, 2011
 '''
 import os, thread, md5
 import restlite
-import sys, ast
+import sys, json
 from wsgiref.simple_server import make_server
 from submitMaster import SubmitMaster
 from Encryption import Encryption
@@ -46,7 +46,7 @@ def job():
     def POST(request, entity):
         model.login(request)
         try:
-            dic=ast.literal_eval(entity)
+            dic=dict(json.loads(json.dumps(entity)))
             priority=dic["priority"]
             hash=dic["hash"]
             imei=dic["imei"]
@@ -65,7 +65,7 @@ def progress():
     def POST(request, entity):
         model.login(request)
         try:
-            dic=ast.literal_eval(entity)
+            dic=dict(json.loads(json.dumps(entity)))
         except:
             log.error("Wrong input format: %s"%entity)
             return request.response(('progress','False'))
