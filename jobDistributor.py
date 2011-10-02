@@ -194,13 +194,13 @@ class JobDistributor(object):
                                 if job.poll():
                                     jobs.append(job) 
                                 else:
-                                    if job.getStatus().get_command_xcode()!=0:  # check for errors
-                                        self.errorQueue.put(job.getStatus().get_command())
                                     # check for crack code
                                     if job.getStatus().get_status() == "Cracked":
                                         self.__status['status']=States.Completed
                                         self.__status['result']=job.getStatus()
-                                    if not self.__status['status']==States.Aborted:
+                                    if job.getStatus().get_command_xcode()!=0:  # check for errors
+                                        self.errorQueue.put(job.getStatus().get_command())
+                                    elif not self.__status['status']==States.Aborted:
                                         self.doneQueue.put(job.getStatus().get_command())
                             processes[host.getHostName()]=jobs
                 else:

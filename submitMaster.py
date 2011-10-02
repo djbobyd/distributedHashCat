@@ -128,7 +128,7 @@ class SubmitMaster(Thread):
                 jobQueue.put(self.JD.getErrorJob(), block=False)
             log.debug("Getting completed jobs.Current completed jobs are %s"%self.JD.getDoneNumber())
             while self.JD.getDoneNumber() != 0:
-                task.delJobID(self.JD.getCompletedJob())
+                task.delJobID(self.JD.getCompletedJob().getID())
             #update task status
             log.debug("Updating task status in the DB.")
             task.setProgress(self.__calcTaskProgress(task.getJobCount(),self.JD.getProgress()))
