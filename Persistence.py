@@ -58,7 +58,7 @@ class DB(object):
         for item in hashID:
             tsk=self.getTaskByID(item["imei"],item["hash"])
             if not tsk == None: 
-                resultTSK.append()
+                resultTSK.append(tsk)
         return resultTSK
     
     def getAllTasks(self):
