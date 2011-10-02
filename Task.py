@@ -90,12 +90,15 @@ class Task(object):
         
     
     def __cmp__(self,other):
-        if self.__prio==other.__prio:
-            if self.__creationTime>other.__creationTime: return 1
-            if self.__creationTime==other.__creationTime: return 0
-            if self.__creationTime<other.__creationTime: return -1
-        if self.__prio<other.__prio: return 1
-        if self.__prio>other.__prio: return -1
+        if not other == None:
+            if self.__prio==other.__prio:
+                if self.__creationTime>other.__creationTime: return 1
+                if self.__creationTime==other.__creationTime: return 0
+                if self.__creationTime<other.__creationTime: return -1
+            if self.__prio<other.__prio: return 1
+            if self.__prio>other.__prio: return -1
+        else:
+            return -2
     
     def __repr__(self):
         return "(%s|%s)" % (self.__imei, self.__hash)

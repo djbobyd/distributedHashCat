@@ -31,7 +31,7 @@ class DB(object):
         return Task.deserialize(text)   
     
     def addTask(self,Tsk):
-        if self.getTaskByID(Tsk.getIMEI,Tsk.getHash) == None:
+        if self.getTaskByID(Tsk.getIMEI(),Tsk.getHash()) == None:
             self.__cursor.execute('INSERT INTO tasks(tsk) VALUES (?)',(Tsk,))
             self.__connection.commit()
             return True

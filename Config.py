@@ -4,6 +4,7 @@ Created on Sep 17, 2011
 @author: boby
 '''
 import os, yaml, logging.config
+from copy import deepcopy
 
 class Config(object):
     _instance = None
@@ -14,10 +15,10 @@ class Config(object):
     if not os.path.exists('logs'):
         os.makedirs('logs')
     for host in __list:
-        hostHandler=__conf["handlers"]["file"]
+        hostHandler=deepcopy(__conf["handlers"]["file"])
         hostHandler["filename"]='logs/'+host["name"]+'.log'
         __conf["handlers"][host["name"]+"_file"]=hostHandler
-        hostLogger=__conf["loggers"]["distributor"]
+        hostLogger=deepcopy(__conf["loggers"]["distributor"])
         handlerList=hostLogger["handlers"]
         handlerList.remove("file")
         handlerList.append(host["name"]+'_file')

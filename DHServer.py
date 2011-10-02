@@ -3,7 +3,7 @@ Created on Sep 4, 2011
 
 @author: boby
 '''
-import os, thread, md5
+import os, thread, md5, ast
 import restlite
 import sys, json
 from wsgiref.simple_server import make_server
@@ -51,8 +51,14 @@ def job():
             hash=dic["hash"]
             imei=dic["imei"]
         except:
-            log.error("Wrong input format: %s"%entity)
-            return request.response(('status','False'))
+            try:
+                dic=dict(ast.literal_eval(entity))
+                priority=dic["priority"]
+                hash=dic["hash"]
+                imei=dic["imei"]
+            except:
+                log.error("Wrong input format: %s"%entity)
+                return request.response(('status','False'))
         if len(imei) != 0 and len(hash) != 0:
             return request.response(('status',sm.enqueueTask(imei,hash,priority)))
         else:
@@ -66,9 +72,15 @@ def progress():
         model.login(request)
         try:
             dic=dict(json.loads(json.dumps(entity)))
+            print "JSON"
         except:
-            log.error("Wrong input format: %s"%entity)
-            return request.response(('progress','False'))
+            try:
+                dic=dict(ast.literal_eval(entity))
+                print "AST"
+                print dic
+            except:
+                log.error("Wrong input format: %s"%entity)
+                return request.response(('progress','False'))
         return request.response(('progress',sm.getTasks(dic["progress"])))
     return locals()
 
