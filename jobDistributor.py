@@ -14,6 +14,7 @@ from HashCat import HashCat, results
 from Host import Host
 from Config import Config
 from Encryption import Encryption
+from Task import States
 
 
 log = Config().getLogger('distributor')
@@ -83,7 +84,7 @@ class JobDistributor(object):
         self.doneQueue = Queue(100)  
         self.totalJobs = 0
         self.instances = 0
-        self.__status = {"cracked":False,"result":results()}
+        self.__status = {"status":States.Pending,"result":results()}
         self.__totalProgress=0.0
         self.computer_list = self.__getHostfromConfig(self.__maxJobs, self.__maxErrors)
         self.__processes = {}
@@ -111,10 +112,11 @@ class JobDistributor(object):
         return processes == maxProcess
     
     def isDone(self):
-        return self.__status['cracked']
+        return self.__status['status'] == States.Completed
     
     def stopAll(self):
         log.debug("Terminating all jobs, please standby ...")
+        self.__status['status']=States.Aborted
         for host in self.__processes:
                 for job in self.__processes[host]:
                     job.terminate()
@@ -123,6 +125,8 @@ class JobDistributor(object):
         return (len(self.__processes), self.__maxJobs*len(self.__processes))
 
     def distribute(self, command):
+        if self.__status['status']==States.Pending:
+            self.__status['status']=States.Running
         procNum = self.totalJobs
         host=None
         sleepTime=0
@@ -166,9 +170,9 @@ class JobDistributor(object):
         log.debug("Total number of hosts is: %i" % len(pcList))
         return pcList
 
-    def __str__1(self):
+    def __str__(self):
         if self.__cleanup()==0:
-            if self.__status["cracked"]:
+            if self.__status["status"]==States.Completed:
                 return 'JobDistributor: !!! hash cracked !!! result available on host: '+self.__status["result"].get_host().getHostName()
             else:
                 return 'JobDistributor: cracking failed!!!'
@@ -194,9 +198,10 @@ class JobDistributor(object):
                                         self.errorQueue.put(job.getStatus().get_command())
                                     # check for crack code
                                     if job.getStatus().get_status() == "Cracked":
-                                        self.__status['cracked']=True
+                                        self.__status['status']=States.Completed
                                         self.__status['result']=job.getStatus()
-                                    self.doneQueue.put(job.getStatus().get_command())
+                                    if not self.__status['status']==States.Aborted:
+                                        self.doneQueue.put(job.getStatus().get_command())
                             processes[host.getHostName()]=jobs
                 else:
                     #add empty proc list
@@ -210,7 +215,7 @@ class JobDistributor(object):
         self.__processes=processes
         self.__calculateProgress()
         # stop all running jobs in case crack is found
-        if self.__status['cracked']:
+        if self.__status['status'] == States.Completed:
             self.stopAll()
         tmp=sum([len(plist) for plist in self.__processes.values()])
         return tmp
@@ -221,13 +226,10 @@ class JobDistributor(object):
         for host in self.__processes:
             for job in self.__processes[host]:
                 allProgress.append(job.getStatus().get_progress())    
-        maxNumber=0.00
         fraction=0.00
         for i in allProgress:
-            if i>maxNumber:
-                maxNumber=math.modf(i)[1]
             fraction=fraction+math.modf(i)[0]
-        self.__totalProgress = maxNumber + fraction
+        self.__totalProgress = fraction
             
     def __getHostfromList(self,host):
         for hostInfo in self.computer_list:

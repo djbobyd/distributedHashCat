@@ -128,10 +128,10 @@ class SubmitMaster(Thread):
                 jobQueue.put(self.JD.getErrorJob(), block=False)
             log.debug("Getting completed jobs.Current completed jobs are %s"%self.JD.getDoneNumber())
             while self.JD.getDoneNumber() != 0:
-                task.delJobID(self.JD.getCompletedJob(), block=False)
+                task.delJobID(self.JD.getCompletedJob())
             #update task status
             log.debug("Updating task status in the DB.")
-            task.setProgress(self.JD.getProgress())
+            task.setProgress(self.__calcTaskProgress(task.getJobCount(),self.JD.getProgress()))
             db.updateTask(task)
             time.sleep(config["poll_timeout"])
         # Force JD to stop all jobs.
@@ -153,6 +153,9 @@ class SubmitMaster(Thread):
             self.pq.put(task)
         db.updateTask(task)
         db.close()
+    
+    def __calcTaskProgress(self,jCount,fraction):
+        return 100 - jCount + fraction
     
     def getTasks(self,tskList):
         db = DB()

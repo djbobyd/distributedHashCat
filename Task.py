@@ -44,6 +44,8 @@ class States(Enum):
     Running=10
     Failed=20
     Completed=30
+    Paused=40
+    Aborted=50
     
     
 class Task(object):
@@ -131,6 +133,8 @@ class Task(object):
         self.__jobList.pop(id)
     def addJobID(self):
         self.__jobList.append(id)
+    def getJobCount(self):
+        return len(self.__jobList)
     
     def setCode(self,value):
         self.__code=value
