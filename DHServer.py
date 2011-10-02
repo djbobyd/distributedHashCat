@@ -27,7 +27,7 @@ model.register('hashcat', 'localhost', crypto.decrypt(config['serverPass']))
 
 @restlite.resource
 def stoptasks():
-    def POST(request,entity):
+    def GET(request):
         model.login(request)
         sm.stopTaskProcessing()
         return request.response(('status','Initiated global stop!'))
@@ -35,7 +35,7 @@ def stoptasks():
 
 @restlite.resource
 def starttasks():
-    def POST(request,entity):
+    def GET(request):
         model.login(request)
         sm.startTaskProcessing()
         return request.response(('status','Initiated global start!'))
@@ -77,8 +77,8 @@ def progress():
 routes = [
     (r'POST /job', job),
     (r'POST /progress', progress),
-    (r'POST /stoptasks', stoptasks),
-    (r'POST /starttasks', starttasks)
+    (r'GET /stoptasks', stoptasks),
+    (r'GET /starttasks', starttasks)
 ]  
 sm=SubmitMaster()
 sm.start()
