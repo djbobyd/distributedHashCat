@@ -52,7 +52,8 @@ class Job(object):
             self.endTime=time.ctime()
             self.__host.delProcess()
             if self.__status.get_command_xcode()!=0:
-                self.__host.addError()
+                if self.__status.get_command_xcode()!=-500:
+                    self.__host.addError()
             else:
                 self.__host.resetErrors()
             return False
@@ -167,16 +168,15 @@ class JobDistributor(Thread):
                                     if job.getStatus().get_status() == "Cracked": # check for crack code
                                         self.__status = States.Completed
                                         self.__task.setStatus(States.Completed)
-                                        self.__task.setProgress(self.__calcTaskProgress(self.__task.getJobCount(),self.__calculateProgress()))
                                         self.__task.setCode(job.getStatus().get_crackCode())
                                         self.__stopAll()
-                                        return
+                                        break
                                     if job.getStatus().get_command_xcode()!=0:  # check for errors
                                         self.__jobQueue.put(job.getStatus().get_command(),block=False)
+                                        continue
                                     if not self.__status==States.Aborted: # remove completed from task
                                         self.__task.delJobID(job.getStatus().get_command().getID())
                             processes[host.getHostName()]=jobs
-                            self.__task.setProgress(self.__calcTaskProgress(self.__task.getJobCount(),self.__calculateProgress()))
                         else:
                             log.error("Something is very wrong!!! There are hosts with assigned tasks that are not in the current jobs list.")
                 else: # host is idle, add empty proc list
@@ -188,9 +188,12 @@ class JobDistributor(Thread):
                         job.terminate()
                         self.__jobQueue.put(job.getStatus().get_command(),block=False)
         self.__processes=processes
+        self.__task.setProgress(self.__calcTaskProgress(self.__task.getJobCount(),self.__calculateProgress()))
     
     def __calcTaskProgress(self,jCount,fraction):
-        return 100 - jCount + fraction   
+        answer=100 - jCount + fraction 
+        log.debug("progress part is: %f"%answer)
+        return answer
     
     def __calculateProgress(self):
         allProgress=[]

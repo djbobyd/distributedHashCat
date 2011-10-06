@@ -72,6 +72,7 @@ class HashCat(Thread):
     
     def abort(self,value):
         self.aborted = value
+        self.results.set_command_xcode(-500)
     def isAborted(self):
         return self.aborted
         

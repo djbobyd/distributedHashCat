@@ -83,17 +83,16 @@ class SubmitMaster(Thread):
         JD.start()
         while JD.isAlive():
             time.sleep(config["poll_timeout"])
-            self.__dbUpdate(JD)
+            self.__dbUpdate(JD.getTask())
             if self.__stopProcessing:
                 JD.terminate()
-        self.__dbUpdate(JD)
+                self.__dbUpdate(JD.getTask())
         JD.join()
     
-    def __dbUpdate(self,JD):
+    def __dbUpdate(self,task):
         db = DB()
         db.connect()
-        JD.getTask()
-        db.updateTask(JD.getTask())
+        db.updateTask(task)
         db.close()
     
     def __calcTaskProgress(self,jCount,fraction):
