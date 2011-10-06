@@ -344,7 +344,7 @@ class results(object):
             self.be_alive = None
             self.aborted = None
             self.last_output = ''
-            self.crackCode=''
+            self.crackCode=None
 
 if __name__ == '__main__':
     pass    

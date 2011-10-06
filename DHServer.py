@@ -72,12 +72,9 @@ def progress():
         model.login(request)
         try:
             dic=dict(json.loads(json.dumps(entity)))
-            print "JSON"
         except:
             try:
                 dic=dict(ast.literal_eval(entity))
-                print "AST"
-                print dic
             except:
                 log.error("Wrong input format: %s"%entity)
                 return request.response(('progress','False'))

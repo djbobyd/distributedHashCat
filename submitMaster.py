@@ -2,27 +2,6 @@
 Joshua Stough
 W&L, Image Group
 July 2011
-This defines the submitMaster thread using the JobDistributor.
-This process should be started by the script that generates commands
-(like calculateSIFTsDistributively or testSubmitMaster) and that then
-sends this thread (Process) one side of the Pipe (a Connection object).
-This thread periodically polls the connection to the caller, looking for
-a command to execute, then either sends it to the JobDistributor or 
-queues it up if the JobDistributor is full. And then it sleeps for a
-sec and repeats.
-
-This code could obviously be much more complicated, as the caller may like some
-feedback on the processes that have been sent.  I'll deal with that later, this
-is just can it work (read: am I smart enough, because it obviously can work).
-
-I guess the caller needs a doneYet option, to know when to join this process and
-quit...
-
-I've added processCommandsInParallel to this file.  This function accepts a list
-of commands and does all the "start submitMaster, submit jobs, wait til finished"
-stuff.  Thus, the orginal caller's code doesn't need Pipes and all, just
-"generate commands, processCommandsInParallel(commands)" (as pseudocode).
-See testSubmitMaster.py.
 
  License: This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License as published by
@@ -45,21 +24,12 @@ from bitcoinControl import execute
 log = Config().getLogger('submitMaster')
 config=Config().getConfig()
 
-def singleton(cls):
-    instances = {} # Line 2
-    def getinstance():
-        if cls not in instances:
-            instances[cls] = cls() # Line 5
-        return instances[cls]
-    return getinstance
 
-@singleton
 class SubmitMaster(Thread):
     
     def __init__(self):
         Thread.__init__(self)
         self.pq=PriorityQueue(100)
-        self.JD = JobDistributor()
         self.__stopProcessing=False
         self.__quit=False
     
@@ -109,49 +79,21 @@ class SubmitMaster(Thread):
         self.__stopProcessing=False
         
     def __processTask(self,task):
+        JD = JobDistributor(task)
+        JD.start()
+        while JD.isAlive():
+            time.sleep(config["poll_timeout"])
+            self.__dbUpdate(JD)
+            if self.__stopProcessing:
+                JD.terminate()
+        self.__dbUpdate(JD)
+        JD.join()
+    
+    def __dbUpdate(self,JD):
         db = DB()
         db.connect()
-        commands=task.createCommandList()
-        jobQueue=Queue(100)
-        log.debug("Adding commands to queue...")
-        for command in commands:
-            jobQueue.put(command)
-        task.setStatus(States.Running)
-        # loop while there are jobs in the queue and the crack is still not found
-        while not jobQueue.empty() and not self.__stopProcessing:
-            log.debug("jobQueue empty: %s"% jobQueue.empty())
-            if not self.JD.isFull():
-                log.debug("Sending command to JobDistributor.")
-                self.JD.distribute(jobQueue.get())
-            log.debug("Turning errors back to command queue.Number of errors is %s"%self.JD.getErrors())
-            while self.JD.getErrors() != 0:
-                jobQueue.put(self.JD.getErrorJob(), block=False)
-            log.debug("Getting completed jobs.Current completed jobs are %s"%self.JD.getDoneNumber())
-            while self.JD.getDoneNumber() != 0:
-                task.delJobID(self.JD.getCompletedJob().getID())
-            #update task status
-            log.debug("Updating task status in the DB.")
-            task.setProgress(self.__calcTaskProgress(task.getJobCount(),self.JD.getProgress()))
-            db.updateTask(task)
-            time.sleep(config["poll_timeout"])
-        # Force JD to stop all jobs.
-        if self.__stopProcessing:
-            self.JD.stopAll()
-        # Wait for JD to finish all jobs left.
-        while len(self.JD)!=0:
-            log.debug("JD info is: "+str(self.JD.info()))
-            time.sleep(config["poll_timeout"])
-        # if the crack is found get the result
-        if self.JD.isDone():
-            log.debug("Job Distributor is done.")
-            task.setCode(self.JD.getResultCode())
-            task.setStatus(States.Completed)
-        else:
-            log.debug("Task has failed")
-            task.setStatus(States.Failed)
-        if self.__stopProcessing:
-            self.pq.put(task)
-        db.updateTask(task)
+        JD.getTask()
+        db.updateTask(JD.getTask())
         db.close()
     
     def __calcTaskProgress(self,jCount,fraction):

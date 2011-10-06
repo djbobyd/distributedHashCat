@@ -133,9 +133,9 @@ class Task(object):
         return self.__code
     
     def delJobID(self,id):
-        self.__jobList.pop(id)
+        self.__jobList.remove(id)
     def addJobID(self):
-        self.__jobList.append(id)
+        self.__jobList.insert(0,id)
     def getJobCount(self):
         return len(self.__jobList)
     
