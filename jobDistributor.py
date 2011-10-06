@@ -10,7 +10,7 @@
 
 import time, math
 from Queue import Queue
-from HashCatMock import HashCat, results
+from HashCat import HashCat
 from Host import Host
 from Config import Config
 from Encryption import Encryption
