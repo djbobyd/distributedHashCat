@@ -2,13 +2,17 @@ version: 1
 formatters:
   simple:
     format: '%(asctime)s - %(levelname)s: %(message)s'
+  threaded_simple:
+    format: '%(clientip)s: %(asctime)s - %(levelname)s: %(message)s'  
   detailed:
     format: '%(asctime)s - %(name)s - %(levelname)s %(module)s:%(lineno)d: %(message)s'
+  threaded_detailed:
+    format: '%(clientip)s: %(asctime)s - %(name)s - %(levelname)s %(module)s:%(lineno)d: %(message)s'
 handlers:
   console:
     class: logging.StreamHandler
     level: DEBUG
-    formatter: simple
+    formatter: detailed
     stream: ext://sys.stdout
   file:
     class : logging.handlers.RotatingFileHandler
@@ -25,13 +29,14 @@ handlers:
       - dev_team@domain.tld
     subject: Houston, we have a problem.
 loggers:
-  hashcat:
+  root:
+    level: DEBUG
+    handlers: [console,file]
+  distributor:
     level: DEBUG
     handlers: [console,file]
     propagate: no
-  root:
+  submitMaster:
     level: DEBUG
-    handlers: [console]
-  distributor:
-    level: DEBUG
-    handlers: [console]
+    handlers: [console,file]
+    propagate: no

@@ -2,27 +2,6 @@
 Joshua Stough
 W&L, Image Group
 July 2011
-This defines the submitMaster thread using the JobDistributor.
-This process should be started by the script that generates commands
-(like calculateSIFTsDistributively or testSubmitMaster) and that then
-sends this thread (Process) one side of the Pipe (a Connection object).
-This thread periodically polls the connection to the caller, looking for
-a command to execute, then either sends it to the JobDistributor or 
-queues it up if the JobDistributor is full. And then it sleeps for a
-sec and repeats.
-
-This code could obviously be much more complicated, as the caller may like some
-feedback on the processes that have been sent.  I'll deal with that later, this
-is just can it work (read: am I smart enough, because it obviously can work).
-
-I guess the caller needs a doneYet option, to know when to join this process and
-quit...
-
-I've added processCommandsInParallel to this file.  This function accepts a list
-of commands and does all the "start submitMaster, submit jobs, wait til finished"
-stuff.  Thus, the orginal caller's code doesn't need Pipes and all, just
-"generate commands, processCommandsInParallel(commands)" (as pseudocode).
-See testSubmitMaster.py.
 
  License: This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License as published by
@@ -33,73 +12,106 @@ See testSubmitMaster.py.
  Public License for more details.
 """
 
-import time,logging.config,yaml,os
-#from multiprocessing import Connection
-from listQueue import listQueue
-from multiprocessing import Process, Pipe
-from jobDistributor import *
+import time
+from Queue import PriorityQueue, Queue
+from threading import Thread
+from jobDistributor import JobDistributor
+from Config import Config
+from Persistence import DB
+from Task import Task, Priorities, States
+from bitcoinControl import execute
 
-config = yaml.load(open(os.path.join(os.path.dirname(__file__),'log.yml'), 'r'))
-logging.config.dictConfig(config)
-log = logging.getLogger('distributor')
+log = Config().getLogger('submitMaster')
+config=Config().getConfig()
 
-stream = file('config.yml', 'r')
-config = yaml.load(stream)
 
-def submitMaster(conn):
-    log.info("submit Master started...")
-    JD = JobDistributor()
-    jobQueue = listQueue(100)
-
-    log.info("Job Distributor started, with %i nodes, %i jobs possible" % \
-          JD.info())
-
-    while True:
-        #See if there is something to do.
-        if conn.poll():
-            command = conn.recv()
-            if command.lower() in ['dy','doneyet','finished','done']:
-                if (len(JD) == 0 and jobQueue.isEmpty()) or JD.isDone() :
-                    print JD
-                    conn.send('yes')
-                    conn.close()
-                    return
-                else:
-                    conn.send('no')
+class SubmitMaster(Thread):
+    
+    def __init__(self):
+        Thread.__init__(self)
+        self.pq=PriorityQueue(100)
+        self.__stopProcessing=False
+        self.__quit=False
+    
+    def run(self):
+        # Load initial queue from DB on start
+        self._loadQueue()
+        while not self.__quit:
+            log.debug("Queue is %s and Status is %s"%(self.pq.empty(), self.__stopProcessing)) 
+            if not self.pq.empty() and not self.__stopProcessing:
+                task=self.pq.get()
+                log.debug("Processing task "+ str(task))
+                self._processTask(task)
             else:
-                jobQueue.enqueue(command)
+                #execute("start")                # Start bitcoins if there is no hash to brake
+                while (self.__stopProcessing or self.pq.empty()) and  not self.__quit:
+                    log.debug("Waiting for a task, or start of the execution...")
+                    time.sleep(5)               # Sleep untill 
+                #execute("stop")                 # Stop bitcoins and continue with hash tasks
+            time.sleep(5)
+    
+    def _loadQueue(self):
+        log.debug("Start loading queue")
+        db=DB()
+        db.connect()
+        tasks=db.getAllTasks()
+        for task in tasks:
+            if task.getStatus()!= States.Completed:
+                log.debug("Load task "+str(task))
+                self.pq.put(task)
+        db.close()
+    
+    def enqueueTask(self,imei,hash,priority=Priorities.Low):
+        db=DB()
+        db.connect()
+        task=Task(imei, hash, priority)
+        status=db.addTask(task)
+        if status: self.pq.put(task)
+        db.close()
+        return status
+    
+    def stopTaskProcessing(self):
+        log.debug("Setting Stop Processing to True")
+        self.__stopProcessing=True
+        
+    def startTaskProcessing(self):
+        log.debug("Setting Stop Processing to False")
+        self.__stopProcessing=False
+        
+    def _processTask(self,task):
+        JD = JobDistributor(task)
+        JD.start()
+        while JD.isAlive():
+            time.sleep(config["poll_timeout"])
+            self.__dbUpdate(JD.getTask())
+            if self.__stopProcessing:
+                JD.terminate()
+                self.__dbUpdate(JD.getTask())
+        JD.join()
+    
+    def __dbUpdate(self,task):
+        db = DB()
+        db.connect()
+        db.updateTask(task)
+        db.close()
+    
+    def __calcTaskProgress(self,jCount,fraction):
+        return 100 - jCount + fraction
+    
+    def getTasks(self,tskList):
+        db = DB()
+        db.connect()
+        response=[]
+        tasks=db.getTasksWithID(tskList)
+        for task in tasks:
+            response.append({'imei':task.getIMEI(),'hash':task.getHash(),'code':task.getCode(),'status':str(task.getStatus()),'progress':task.getProgress()})
+        db.close()
+        #Return a tuple of all tasks and their parameters. To be used in a call to the DHServer
+        return response
+    
+    def quit(self):
+        self.__stopProcessing=True
+        self.__quit=True
 
-        #Distribute as many jobs as possible.
-        while not jobQueue.isEmpty() and not JD.isFull():
-            JD.distribute(jobQueue.dequeue())   
-            
-        if not conn.poll():
-            #print('Going to sleep...')
-            log.debug("poll_timeout: %d"% int(config["poll_timeout"]))
-            time.sleep(int(config["poll_timeout"]))
-
-
-"""
-Convenience function for the caller.  Every caller basically wants this:
-send in jobs, wait til they're finished.
-"""
-def processCommandsInParallel(commands):
-    #Start the submit master, which will keep track of the jobs, etc.
-    pconn, cconn = Pipe()
-    p = Process(target=submitMaster,args=(cconn,))
-    p.start()
-    log.debug("Sending commands to Job Distributor...")
-    #Send the jobs in.
-    for command in commands:
-        pconn.send(command)
-
-    #Don't quit until the submitMaster says it's done.
-    waitCycles = int(config["wait_timeout"])
-    log.debug("wait_timeout: %d"% waitCycles)
-    while True:
-        pconn.send('dy')
-        if pconn.recv() == 'yes':
-            p.join()
-            return
-        log.info("Still not done")
-        time.sleep(waitCycles)
+if __name__ == '__main__':
+    pass

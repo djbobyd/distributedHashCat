@@ -1,5 +1,0 @@
-hosts: [{name: "host1", user: "user1", pass: "pass1"},{name: "host2", user: "user2", pass: "pass2"}]
-heartbeat_timeout: 30
-init_timeout: 30
-poll_timeout: 10
-wait_timeout: 30

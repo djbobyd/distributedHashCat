@@ -3,16 +3,13 @@ Created on Aug 22, 2011
 
 @author: boby
 '''
-import paramiko ,os, getopt, sys
-import time, logging.config, yaml
+import paramiko ,os, getopt, sys, time, logging
 from threading import Thread
+from Encryption import Encryption
+from Config import Config
 
-config = yaml.load(open(os.path.join(os.path.dirname(__file__),'log.yml'), 'r'))
-logging.config.dictConfig(config)
-log = logging.getLogger('root')
-
-stream = file(os.path.join(os.path.dirname(__file__),'config.yml'), 'r')
-config = yaml.load(stream)
+config = Config().getConfig()
+log = Config().getLogger('root')
 
 class BTControl(Thread):
         
@@ -20,9 +17,9 @@ class BTControl(Thread):
         Thread.__init__(self)    
         self.host_name = host_name
         self.user_name = user_name
-        self.password = password
-        self.port = 22  #default SSH port
-        self.chan = None
+        self.__password = password
+        self.__port = 22  #default SSH __port
+        self.__chan = None
         self.command = command
         self.connection = None
         self.ssh = paramiko.SSHClient()
@@ -49,9 +46,9 @@ class BTControl(Thread):
         #self.ssh.load_system_host_keys()
         #self.ssh.set_missing_host_key_policy(paramiko.WarningPolicy)
         log.debug("Making connection to remote host: %s with user: %s" % (self.host_name, self.user_name))
-        self.connection = self.ssh.connect(self.host_name,self.port, self.user_name, self.password, timeout=5)
+        self.connection = self.ssh.connect(self.host_name,self.__port, self.user_name, self.__password, timeout=5)
         log.debug("Starting Shell!")
-        self.chan = self.ssh.invoke_shell()
+        self.__chan = self.ssh.invoke_shell()
         log.debug("Connection established!")
 
     def run_command(self, command):
@@ -62,16 +59,16 @@ class BTControl(Thread):
         @rtype: String
         """ 
         log.debug("sending command: '%s' to host" % command)
-        self.chan.send(command+'\n')
+        self.__chan.send(command+'\n')
         time.sleep(5)
-        return self.chan.send_ready()
+        return self.__chan.send_ready()
     
     def check_host(self):
         try:
             log.debug("Making connection to remote host: %s with user: %s" % (self.host_name, self.user_name))
-            self.connection = self.ssh.connect(self.host_name,self.port, self.user_name, self.password, timeout=5)
+            self.connection = self.ssh.connect(self.host_name,self.__port, self.user_name, self.__password, timeout=5)
             log.debug("Starting Shell!")
-            self.chan = self.ssh.invoke_shell()
+            self.__chan = self.ssh.invoke_shell()
             self.ssh.close()
             log.debug("Host is alive and running!")
         except Exception:
@@ -102,6 +99,7 @@ def main(argv):
         sys.exit(2)   
     
     global debug
+    debug=0
     
     for opt, arg in opts:                
         if opt in ("-h", "--help"):      
@@ -110,7 +108,6 @@ def main(argv):
         elif opt == '-d':                               
             debug = 1                  
 
-    global hash
     hash = "".join(args)
     
     if debug==1:
@@ -121,12 +118,14 @@ def main(argv):
     if len(hash)==0:
         print "No command provided"
         usage()
-        sys.exit(0)   
-        
-if __name__ == "__main__":
-    main(sys.argv[1:])
+        sys.exit(0)  
+    
+    return hash 
+
+def execute(hash):
     computer_list = config["hosts"]
-    log.debug("The command is: %s" % hash)
+    log.info("The command is: %s" % hash)
+    enc=Encryption()
     if hash == "start":
         command="bash /home/user/startpoc/sp1_as_user.sh"
     elif hash == "stop":
@@ -136,5 +135,8 @@ if __name__ == "__main__":
         usage()
         sys.exit(1)
     for host in computer_list:
-        RC=BTControl(host["name"], host["user"], host["pass"], command)
+        RC=BTControl(host["name"], host["user"], enc.decrypt(host["pass"]), command)
         RC.start()
+        
+if __name__ == "__main__":
+    execute(main(sys.argv[1:]))
