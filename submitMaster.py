@@ -35,13 +35,13 @@ class SubmitMaster(Thread):
     
     def run(self):
         # Load initial queue from DB on start
-        self.__loadQueue()
+        self._loadQueue()
         while not self.__quit:
             log.debug("Queue is %s and Status is %s"%(self.pq.empty(), self.__stopProcessing)) 
             if not self.pq.empty() and not self.__stopProcessing:
                 task=self.pq.get()
                 log.debug("Processing task "+ str(task))
-                self.__processTask(task)
+                self._processTask(task)
             else:
                 #execute("start")                # Start bitcoins if there is no hash to brake
                 while (self.__stopProcessing or self.pq.empty()) and  not self.__quit:
@@ -50,7 +50,7 @@ class SubmitMaster(Thread):
                 #execute("stop")                 # Stop bitcoins and continue with hash tasks
             time.sleep(5)
     
-    def __loadQueue(self):
+    def _loadQueue(self):
         log.debug("Start loading queue")
         db=DB()
         db.connect()
@@ -78,7 +78,7 @@ class SubmitMaster(Thread):
         log.debug("Setting Stop Processing to False")
         self.__stopProcessing=False
         
-    def __processTask(self,task):
+    def _processTask(self,task):
         JD = JobDistributor(task)
         JD.start()
         while JD.isAlive():

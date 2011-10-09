@@ -3,7 +3,7 @@ Created on Sep 4, 2011
 
 @author: boby
 '''
-import unittest
+import unittest, time
 from Host import Host 
 from Task import Task, Priorities, Command
 
@@ -79,7 +79,7 @@ class TestCommand(unittest.TestCase):
     
     def testEnv(self):
         envList=[("DISPLAY",":0"),("LD_LIBRARY_PATH","/opt/AMD-APP-SDK-v2.4-lnx64/lib/x86_64")]
-        cmd=Command("some command", envList)
+        cmd=Command("some command",1, envList)
         self.assertTrue(cmd.getCommand().find("DISPLAY")!=-1 and cmd.getCommand().find("/opt/AMD-APP-SDK-v2.4-lnx64/lib/x86_64")!=-1, "Environment is not correctly configured!!!")
 
 class TestTask(unittest.TestCase):
@@ -94,9 +94,27 @@ class TestTask(unittest.TestCase):
         task=Task("123", "4567890", Priorities.Critical, "oclHashcat-lite64.bin")
         cmds=task.createCommandList()
         self.assertTrue(cmds[0].getCommand().find("4567890:001200")!=-1, "Hash is not calculated right!!!")
+    
+    def testCompare(self):
+        task1=Task("123", "4567890", Priorities.Normal, "oclHashcat-lite64.bin")
+        time.sleep(1)
+        task2=Task("234", "4567890", Priorities.Critical, "oclHashcat-lite64.bin")
+        time.sleep(1)
+        task3=Task("345", "4567890", Priorities.Normal, "oclHashcat-lite64.bin")
+        self.assertGreater(task1, task2, "Comparation is wrong. prio 1 is %s and prio 2 is %s"%(task2.getPrio(),task1.getPrio()))
+        self.assertGreater(task3,task1, "Time comparison is wrong. time 1 is %s and time 2 is %s"%(task1.getCreationTime(),task3.getCreationTime()))
+
+class TestSubmitMaster(unittest.TestCase):
+    
+    def setUp(self):
+        pass
+        
+    def tearDown(self):
+        pass
   
 suite = unittest.TestLoader().loadTestsFromTestCase(TestJobDistributor)
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestHost))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestCommand))
 suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTask))
+suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestSubmitMaster))
 unittest.TextTestRunner(verbosity=2).run(suite)
