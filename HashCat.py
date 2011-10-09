@@ -72,7 +72,6 @@ class HashCat(Thread):
     
     def abort(self,value):
         self.aborted = value
-        self.results.set_command_xcode(-500)
     def isAborted(self):
         return self.aborted
         
@@ -84,6 +83,8 @@ class HashCat(Thread):
             self.ping()
             self.stop_proc()
         self.quit()
+        if self.aborted:
+            self.results.set_command_xcode(-500)
 
     
     def run_command(self, command):
@@ -215,8 +216,8 @@ class HashCat(Thread):
             except (RuntimeError, IOError):
                 print "Stream not ready!!!"
         if self.__channelLostCount>=10:
-            self.abort(True)
-            self.quit()
+            self.be_alive=False
+            return
         self.parse(lines)
         
     def write_proc(self, message):
