@@ -114,7 +114,7 @@ class JobDistributor(Thread):
         maxSleepTime=config["maxHostWait"]
         #Simplified for now.  Just to see if the data all works.
         log.info('Searching for host for process %i...' % (procNum))
-        while host==None:
+        while host==None and self.__status not in [States.Completed, States.Aborted]:
             log.debug("Waiting %i seconds for available host!"%sleepTime)
             time.sleep(sleepTime)
             if sleepTime<maxSleepTime:
