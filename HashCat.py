@@ -138,11 +138,14 @@ class HashCat(Thread):
                         self.be_alive=True
                         break
                     if case():
-                        self.log.warning("Unexpected value: %s" % self.__status)
+                        self.log.warning("Unexpected value: %s" % self.results.get_status())
                 continue 
             if line.startswith("Progress."):
                 try:
-                    self.results.set_progress(float(line[line.find("(")+1:-2]))
+                    prg=float(line[line.find("(")+1:-2])
+                    if prg==float(self.results.get_command().getID())+1.0:
+                        prg=0.99
+                    self.results.set_progress(prg)
                 except:
                     self.results.set_progress(-1.0)
                 continue
@@ -156,7 +159,7 @@ class HashCat(Thread):
                 self.results.set_last_output(line_arr)
                 self.be_alive=False
                 self.evaluate_xcode()
-                if self.results.get_command_xcode()!=0:
+                if not self.results.get_command_xcode() in [0,1]:
                     self.results.set_status("Error")
                 continue
             #self.log.debug("Line cannot be recognized: %s" % line)
