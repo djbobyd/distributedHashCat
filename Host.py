@@ -73,7 +73,7 @@ class Host(object):
         sftp=ssh.open_sftp()
         try:
             file=sftp.open(fileName)
-            return file.read()
+            return file
         except IOError:
             self.log.debug("No such file!!!")
             return None
@@ -140,6 +140,6 @@ class Host(object):
             return False
     
     def resetErrors(self):
-        self.log.debug("Errors reset!")
+        self.log.debug("Errors reset for host: %s !!!"%self.__hostName)
         self.__errors=0
         self.__stateSystem()   

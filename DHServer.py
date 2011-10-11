@@ -79,6 +79,38 @@ def progress():
                 log.error("Wrong input format: %s"%entity)
                 return request.response(('progress','False'))
         return request.response(('progress',sm.getTasks(dic["progress"])))
+    def GET(request):
+        model.login(request)
+        return request.response(('progress',sm.getTasks()))
+    return locals()
+
+@restlite.resource
+def delete():
+    def POST(request,entity):
+        model.login(request)
+        try:
+            dic=dict(json.loads(json.dumps(entity)))
+        except:
+            try:
+                dic=dict(ast.literal_eval(entity))
+            except:
+                log.error("Wrong input format: %s"%entity)
+                return request.response(('progress','False'))
+        return request.response((sm.deleteTasks(dic)))
+    return locals()
+
+@restlite.resource
+def status():
+    def GET(request):
+        model.login(request)
+        return request.response((sm.status()))
+    return locals()
+
+@restlite.resource
+def reset():
+    def GET(request):
+        model.login(request)
+        return request.response(('Hosts errors reset status',sm.hostReset()))
     return locals()
 
 # all the routes
@@ -87,7 +119,10 @@ routes = [
     (r'POST /job', job),
     (r'POST /progress', progress),
     (r'GET /stoptasks', stoptasks),
-    (r'GET /starttasks', starttasks)
+    (r'GET /starttasks', starttasks),
+    (r'GET /progress', progress),
+    (r'GET /status', status),
+    (r'GET /reset', reset)
 ]  
 sm=SubmitMaster()
 sm.start()

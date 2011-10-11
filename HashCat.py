@@ -243,7 +243,8 @@ class HashCat(Thread):
             if cmd.startswith('--outfile'):
                 filename=cmd.split("=")[1]
         if filename != None:
-            crackCode=self.results.get_host().getFile(filename)
+            tmp=self.results.get_host().getFile(filename).read()
+            crackCode=tmp.split(':')[2]
         if crackCode != None:
             self.results.set_crackCode(crackCode)
     

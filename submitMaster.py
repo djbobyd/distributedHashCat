@@ -32,6 +32,7 @@ class SubmitMaster(Thread):
         self.pq=PriorityQueue(100)
         self.__stopProcessing=False
         self.__quit=False
+        self.__JD=None
     
     def run(self):
         # Load initial queue from DB on start
@@ -40,6 +41,7 @@ class SubmitMaster(Thread):
             log.debug("Queue is %s and Status is %s"%(self.pq.empty(), self.__stopProcessing)) 
             if not self.pq.empty() and not self.__stopProcessing:
                 task=self.pq.get()
+                log.debug("Queue size is: %s"%self.pq.qsize())
                 log.debug("Processing task "+ str(task))
                 self._processTask(task)
             else:
@@ -79,15 +81,17 @@ class SubmitMaster(Thread):
         self.__stopProcessing=False
         
     def _processTask(self,task):
-        JD = JobDistributor(task)
-        JD.start()
-        while JD.isAlive():
+        self.__JD = JobDistributor(task)
+        self.__JD.start()
+        while self.__JD.isAlive():
             time.sleep(config["poll_timeout"])
-            self.__dbUpdate(JD.getTask())
+            self.__dbUpdate(self.__JD.getTask())
             if self.__stopProcessing:
-                JD.terminate()
-                self.__dbUpdate(JD.getTask())
-        JD.join()
+                self.__JD.terminate()
+                self.pq.put(task, block=False)
+        self.__dbUpdate(self.__JD.getTask())
+        self.__JD.join()
+        self.__JD=None
     
     def __dbUpdate(self,task):
         db = DB()
@@ -98,7 +102,7 @@ class SubmitMaster(Thread):
     def __calcTaskProgress(self,jCount,fraction):
         return 100 - jCount + fraction
     
-    def getTasks(self,tskList):
+    def getTasks(self,tskList=None):
         db = DB()
         db.connect()
         response=[]
@@ -108,6 +112,24 @@ class SubmitMaster(Thread):
         db.close()
         #Return a tuple of all tasks and their parameters. To be used in a call to the DHServer
         return response
+    
+    def hostReset(self):
+        if not self.__JD==None: 
+            self.__JD.resetErrorHost()
+            return True
+        return False
+    
+    def deleteTasks(self,tskList):
+        db = DB()
+        db.connect()
+        response=[]
+        for item in tskList:
+            db.delTaskByID(item['imei'], item['hash'])
+            response.append({'imei':item['imei'],'hash':item['hash'],'status':'deleted'})
+        return response
+    
+    def status(self):
+        pass
     
     def quit(self):
         self.__stopProcessing=True

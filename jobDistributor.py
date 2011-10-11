@@ -102,17 +102,16 @@ class JobDistributor(Thread):
         self.__task.setStatus(States.Running)
         while not self.__jobQueue.empty()and self.__status not in [States.Completed, States.Aborted]:
             self.distribute(self.__jobQueue.get(block=False))
+        if not self.__task.getStatus() in [States.Completed,States.Aborted]:
+            self.__task.setStatus(States.Failed)
 
     def distribute(self, command):
         if self.__status==States.Pending:
             self.__status=States.Running
-        if self.__status == States.Completed:
-            return False
         procNum = command.getID()
         host=None
         sleepTime=0
         maxSleepTime=config["maxHostWait"]
-        #Simplified for now.  Just to see if the data all works.
         log.info('Searching for host for process %i...' % (procNum))
         while host==None and self.__status not in [States.Completed, States.Aborted]:
             log.debug("Waiting %i seconds for available host!"%sleepTime)
@@ -130,8 +129,6 @@ class JobDistributor(Thread):
 
     def __getHost(self):
         """Find a host among the computer_list whose load is less than maxJobs."""
-        #Could loop through computer_list here, but computer_list still lists the
-        #unavailable ones.  
         log.info("Finding available host...")
         self.__cleanup()
         for host in self.__processes:
@@ -204,6 +201,11 @@ class JobDistributor(Thread):
         for i in allProgress:
             fraction=fraction+math.modf(i)[0]
         return fraction
+    
+    def resetErrorHost(self):
+        for host in self.computer_list:
+            if host.getStatus()==Host.States.Error:
+                host.resetErrors()
             
     def __getHostfromList(self,host):
         for hostInfo in self.computer_list:

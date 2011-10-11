@@ -54,6 +54,8 @@ class DB(object):
     
     def getTasksWithID(self,hashID):
         #TODO test this method
+        if hashID == None:
+            return self.getAllTasks()
         resultTSK=[]
         for item in hashID:
             tsk=self.getTaskByID(item["imei"],item["hash"])
