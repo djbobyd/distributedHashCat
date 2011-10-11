@@ -122,7 +122,7 @@ routes = [
     (r'GET /starttasks', starttasks),
     (r'GET /progress', progress),
     (r'GET /status', status),
-    (r'GET /delete', delete),
+    (r'POST /delete', delete),
     (r'GET /reset', reset)
 ]  
 sm=SubmitMaster()
