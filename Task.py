@@ -59,7 +59,10 @@ class Task(object):
     
     def __init__(self, imei, hash, priority=Priorities.Low, executable=config["executable"]):
         self.__exec=executable
-        self.__prio=Priorities.__enum__(int(priority))
+        try:
+            self.__prio=getattr(Priorities, priority.split(".")[1])
+        except:
+            self.__prio=Priorities.__enum__(int(priority))
         self.__hash=hash
         self.__imei= imei
         self.__taskID=''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(self.N))

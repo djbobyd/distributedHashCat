@@ -57,8 +57,14 @@ def job():
                 hash=dic["hash"]
                 imei=dic["imei"]
             except:
-                log.error("Wrong input format: %s"%entity)
-                return request.response(('status','False'))
+                try:
+                    dic=dict(entity)
+                    priority=dic["priority"]
+                    hash=dic["hash"]
+                    imei=dic["imei"]
+                except:
+                    log.error("Wrong input format: %s"%entity)
+                    return request.response(('status','False'))
         if len(imei) != 0 and len(hash) != 0:
             return request.response(('status',sm.enqueueTask(imei,hash,priority)))
         else:
@@ -76,8 +82,11 @@ def progress():
             try:
                 dic=dict(ast.literal_eval(entity))
             except:
-                log.error("Wrong input format: %s"%entity)
-                return request.response(('progress','False'))
+                try:
+                    dic=dict(entity)
+                except:
+                    log.error("Wrong input format: %s"%entity)
+                    return request.response(('progress','False'))
         return request.response(('progress',sm.getTasks(dic["progress"])))
     def GET(request):
         model.login(request)
@@ -94,8 +103,11 @@ def delete():
             try:
                 dic=dict(ast.literal_eval(entity))
             except:
-                log.error("Wrong input format: %s"%entity)
-                return request.response(('progress','False'))
+                try:
+                    dic=dict(entity)
+                except:
+                    log.error("Wrong input format: %s"%entity)
+                    return request.response(('progress','False'))
         return request.response((sm.deleteTasks(dic)))
     return locals()
 

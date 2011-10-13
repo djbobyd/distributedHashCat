@@ -14,7 +14,7 @@ July 2011
 
 import time
 from Queue import PriorityQueue, Queue
-from threading import Thread
+from threading import Thread, Semaphore
 from jobDistributor import JobDistributor
 from Config import Config
 from Persistence import DB
@@ -45,11 +45,13 @@ class SubmitMaster(Thread):
                 log.debug("Processing task "+ str(task))
                 self._processTask(task)
             else:
-                #execute("start")                # Start bitcoins if there is no hash to brake
+                if config["executeBitCoin"]:
+                    execute("start")                # Start bitcoins if there is no hash to brake
                 while (self.__stopProcessing or self.pq.empty()) and  not self.__quit:
                     log.debug("Waiting for a task, or start of the execution...")
                     time.sleep(5)               # Sleep untill 
-                #execute("stop")                 # Stop bitcoins and continue with hash tasks
+                if config["executeBitCoin"]:
+                    execute("stop")                 # Stop bitcoins and continue with hash tasks
             time.sleep(5)
     
     def _loadQueue(self):
@@ -101,7 +103,7 @@ class SubmitMaster(Thread):
     
     def __calcTaskProgress(self,jCount,fraction):
         return 100 - jCount + fraction
-    
+
     def getTasks(self,tskList=None):
         db = DB()
         db.connect()
@@ -129,7 +131,8 @@ class SubmitMaster(Thread):
         return response
     
     def status(self):
-        pass
+        response={'JD Status':self.__JD,'JD Length':len(self.__JD),'JD Task':self.__JD.getTask(),'SM Stopped':self.__stopProcessing,'SM Length':self.pq.qsize()}
+        return response
     
     def quit(self):
         self.__stopProcessing=True

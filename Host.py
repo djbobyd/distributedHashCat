@@ -73,7 +73,8 @@ class Host(object):
         sftp=ssh.open_sftp()
         try:
             file=sftp.open(fileName)
-            return file
+            string=file.read()
+            return string
         except IOError:
             self.log.debug("No such file!!!")
             return None

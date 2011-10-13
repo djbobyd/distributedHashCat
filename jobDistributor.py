@@ -100,8 +100,11 @@ class JobDistributor(Thread):
         for command in commands:
             self.__jobQueue.put(command)
         self.__task.setStatus(States.Running)
-        while not self.__jobQueue.empty()and self.__status not in [States.Completed, States.Aborted]:
+        while not self.__jobQueue.empty() and self.__status not in [States.Completed, States.Aborted]:
             self.distribute(self.__jobQueue.get(block=False))
+        while len(self)!=0:
+            self.__cleanup()
+            time.sleep(config["poll_timeout"])
         if not self.__task.getStatus() in [States.Completed,States.Aborted]:
             self.__task.setStatus(States.Failed)
 
@@ -186,6 +189,16 @@ class JobDistributor(Thread):
                         self.__jobQueue.put(job.getStatus().get_command(),block=False)
         self.__processes=processes
         self.__task.setProgress(self.__calcTaskProgress(self.__task.getJobCount(),self.__calculateProgress()))
+    
+    def __len__(self):
+        return sum([len(plist) for plist in self.__processes.values()])
+    
+    def __repr__(self):
+        errors=0
+        for host in self.computer_list:
+            if host.getStatus()==Host.States.Error:
+                errors+=1
+        return (errors,self.__status)
     
     def __calcTaskProgress(self,jCount,fraction):
         answer=100 - jCount + fraction 
