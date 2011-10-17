@@ -220,6 +220,8 @@ class HashCat(Thread):
                 print "Stream not ready!!!"
         if self.__channelLostCount>=10:
             self.be_alive=False
+            self.results.set_command_xcode(-100)
+            self.results.set_status('Aborted')
             return
         self.parse(lines)
         
@@ -244,7 +246,7 @@ class HashCat(Thread):
                 filename=cmd.split("=")[1]
         if filename != None:
             tmp=self.results.get_host().getFile(filename)
-            crackCode=tmp.split(':')[2]
+            crackCode=tmp[0][:-1].split(':')[2]
         if crackCode != None:
             self.results.set_crackCode(crackCode)
     
