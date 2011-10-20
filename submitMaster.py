@@ -66,12 +66,22 @@ class SubmitMaster(Thread):
         db.close()
     
     def enqueueTask(self,imei,hash,priority=Priorities.Low):
+        isChanged=False
+        if priority == Priorities.Critical:
+            if not self.__stopProcessing:
+                self.__stopProcessing = True
+                isChanged=True
+            while self.__JD != None:
+                time.sleep(10)
         db=DB()
         db.connect()
         task=Task(imei, hash, priority)
         status=db.addTask(task)
         if status: self.pq.put(task)
         db.close()
+        if priority == Priorities.Critical:
+            if isChanged:
+                self.__stopProcessing = False
         return status
     
     def stopTaskProcessing(self):
