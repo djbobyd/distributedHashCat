@@ -104,7 +104,7 @@ class SubmitMaster(Thread):
                 self.__JD.terminate()
                 self.pq.put(task, block=False)
         self.__dbUpdate(self.__JD.getTask())
-        self.__JD.join()
+        self.__JD.join(300.0)
         self.__JD=None
     
     def __dbUpdate(self,task):
