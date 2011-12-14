@@ -48,7 +48,7 @@ class Job(object):
         log.debug("Job status is: %s"%self.HC.isAlive())
         if not self.HC.isAlive() or self.HC.isAborted():
             log.debug("Waiting for thread to finish...")
-            self.HC.join()
+            self.HC.join(300.0)
             self.endTime=time.ctime()
             self.__host.delProcess()
             if self.__status.get_command_xcode()!=0:
@@ -98,11 +98,13 @@ class JobDistributor(Thread):
         commands=self.__task.createCommandList()
         log.debug("Adding commands to queue...")
         for command in commands:
-            self.__jobQueue.put(command)
+            self.__jobQueue.put(command, block=False)
         self.__task.setStatus(States.Running)
         while not self.__jobQueue.empty() and self.__status not in [States.Completed, States.Aborted]:
+            log.debug("JD.run - jobQ %s and status %s"%(self.__jobQueue.empty(),self.__status))
             self.distribute(self.__jobQueue.get(block=False))
         while len(self)!=0:
+            log.debug("JD.run end - len is %s"%len(self))
             self.__cleanup()
             time.sleep(config["poll_timeout"])
         if not self.__task.getStatus() in [States.Completed,States.Aborted]:

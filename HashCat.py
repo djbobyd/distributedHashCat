@@ -207,9 +207,13 @@ class HashCat(Thread):
     
     def read_proc(self):
         lines=''
+        count=0
         while not [True for i in ["=> ","$ ","$ s","# ","# s","ss"] if lines.endswith(i)]:
             try:
                 self.log.debug("Channel receive status: %s" % self.__chan.recv_ready())
+                while not self.__chan.recv_ready() and not count >=10:
+                    time.sleep(1)
+                    count+=1 
                 if self.__chan.recv_ready():
                     line=self.__chan.recv(9999)
                     lines=lines+''.join(line)
