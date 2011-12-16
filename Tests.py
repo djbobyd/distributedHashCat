@@ -99,13 +99,13 @@ class TestTask(unittest.TestCase):
         task1=Task("123", "4567890", Priorities.Normal, "oclHashcat-lite64.bin")
         time.sleep(1)
         task2=Task("234", "4567890", Priorities.Critical, "oclHashcat-lite64.bin")
-        self.assertGreater(task2, task1, "Comparation is wrong. prio 1 is %s and prio 2 is %s"%(task2.getPrio(),task1.getPrio()))        
+        self.assertGreater(task1, task2, "Comparation is wrong. prio 1 is %s and prio 2 is %s"%(task2.getPrio(),task1.getPrio()))        
         
     def testTimeCompare(self):
         task1=Task("123", "4567890", Priorities.Normal, "oclHashcat-lite64.bin")
         time.sleep(1)
         task3=Task("345", "4567890", Priorities.Normal, "oclHashcat-lite64.bin")
-        self.assertGreater(task1,task3, "Time comparison is wrong. time 1 is %s and time 2 is %s"%(task1.getCreationTime(),task3.getCreationTime()))
+        self.assertGreater(task3,task1, "Time comparison is wrong. time 1 is %s and time 2 is %s"%(task1.getCreationTime(),task3.getCreationTime()))
 
 class TestSubmitMaster(unittest.TestCase):
     

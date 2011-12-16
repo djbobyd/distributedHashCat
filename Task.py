@@ -68,7 +68,7 @@ class Task(object):
         self.__taskID=''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(self.N))
         self.__code=None
         self.__outFile=self.__taskID+'.txt'
-        self.__creationTime=time.ctime()
+        self.__creationTime=time.gmtime()
         self.__startTime=None
         self.__completionTime=None
         self.__status=States.Pending
@@ -84,9 +84,15 @@ class Task(object):
         self.__taskID=text[4]
         self.__code=text[5]
         self.__outFile=text[6]
-        self.__creationTime=time.strftime(text[7])
-        self.__startTime=time.strftime(text[8])
-        self.__completionTime=time.strftime(text[9])
+        self.__creationTime=time.strptime(text[7])
+        try:
+            self.__startTime=time.strptime(text[8])
+        except:
+            self.__startTime=None
+        try:
+            self.__completionTime=time.strptime(text[9])
+        except:
+            self.__completionTime=None
         self.__status=getattr(States,text[10].split(".")[1])
         self.__progress=float(text[11])
         self.__jobList= [int(i) for i in text[12][1:-1].split(",")]
@@ -98,11 +104,11 @@ class Task(object):
         """
         if not other == None:
             if self.__prio==other.__prio:
-                if self.__creationTime>other.__creationTime: return -1
+                if self.__creationTime>other.__creationTime: return 1
                 if self.__creationTime==other.__creationTime: return 0
-                if self.__creationTime<other.__creationTime: return 1
-            if self.__prio<other.__prio: return 1
-            if self.__prio>other.__prio: return -1
+                if self.__creationTime<other.__creationTime: return -1
+            if self.__prio<other.__prio: return -1
+            if self.__prio>other.__prio: return 1
         else:
             return -2
     
@@ -112,7 +118,16 @@ class Task(object):
         return self.serialize()
     
     def serialize(self):
-        return "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s"%(self.__exec,self.__prio,self.__imei,self.__hash,self.__taskID,self.__code,self.__outFile,self.__creationTime,self.__startTime,self.__completionTime,self.__status,self.__progress,self.__jobList)
+        creationTime=time.asctime(self.__creationTime)
+        try:
+            startTime=time.asctime(self.__startTime)
+        except:
+            startTime=str(None)
+        try:
+            completionTime=time.asctime(self.__completionTime)
+        except:
+            completionTime=str(None)
+        return "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s"%(self.__exec,self.__prio,self.__imei,self.__hash,self.__taskID,self.__code,self.__outFile,creationTime,startTime,completionTime,self.__status,self.__progress,self.__jobList)
     
     def __calculateStart(self,percent):
         return percent*1000000000
@@ -124,11 +139,19 @@ class Task(object):
     def getIMEI(self):
         return self.__imei
     def getCreationTime(self):
-        return self.__creationTime
+        return time.asctime(self.__creationTime)
     def getStartTime(self):
-        return self.__startTime
+        try:
+            time=time.asctime(self.__startTime)
+        except:
+            time=str(None)
+        return time
     def getEndTime(self):
-        return self.__completionTime
+        try:
+            time=time.asctime(self.__completionTime)
+        except:
+            time=str(None)
+        return time
     def getPrio(self):
         return self.__prio
     def getProgress(self):
@@ -149,8 +172,8 @@ class Task(object):
         self.__code=value
     def setStatus(self,status):
         self.__status=status
-        if self.__status == States.Running: self.__startTime=time.ctime()
-        if self.__status in [States.Completed, States.Failed]:self.__completionTime=time.ctime()
+        if self.__status == States.Running: self.__startTime=time.gmtime()
+        if self.__status in [States.Completed, States.Failed]:self.__completionTime=time.gmtime()
     def setProgress(self,progress):
         self.__progress=float(progress)
     

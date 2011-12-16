@@ -6,6 +6,9 @@ Created on Sep 6, 2011
 import paramiko, socket
 from Enum import Enum
 from Config import Config
+from apscheduler.scheduler import Scheduler
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 
 class Host(object):
@@ -32,6 +35,9 @@ class Host(object):
         self.__password = password
         self.__port = port
         self.log = Config().getLogger('distributor.'+host,host)
+        self.__sched = Scheduler()
+        self.__sched.start()
+        
         
     def checkHost(self):
         self.log.debug("Start checking of host...")
@@ -49,7 +55,12 @@ class Host(object):
         except:
             self.log.error("A connection to the host cannot be established!!!")
             self.__status=Host.States.Down
+            timechange=datetime.now()+relativedelta(seconds=5)
+            job = self.__sched.add_date_job(self.__resetDown, timechange)
             return False
+    
+    def __resetDown(self):
+        self.__status=Host.States.NotAvailable
     
     def __getSSH(self):
         ssh = paramiko.SSHClient()

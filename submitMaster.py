@@ -72,12 +72,12 @@ class SubmitMaster(Thread):
         status=db.addTask(task)
         if status: self.pq.put(task)
         db.close()
-        isChanged=False
         if priority == Priorities.Critical:
             thread.start_new_thread(self.__realTimeJob,())
         return status
     
     def __realTimeJob(self):
+        isChanged = False
         if not self.__stopProcessing:
             self.__stopProcessing = True
             isChanged=True
