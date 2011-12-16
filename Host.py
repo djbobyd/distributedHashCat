@@ -55,7 +55,7 @@ class Host(object):
         except:
             self.log.error("A connection to the host cannot be established!!!")
             self.__status=Host.States.Down
-            timechange=datetime.now()+relativedelta(seconds=5)
+            timechange=datetime.now()+relativedelta(seconds=300)
             job = self.__sched.add_date_job(self.__resetDown, timechange)
             return False
     
