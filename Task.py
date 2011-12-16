@@ -98,11 +98,11 @@ class Task(object):
         """
         if not other == None:
             if self.__prio==other.__prio:
-                if self.__creationTime>other.__creationTime: return 1
+                if self.__creationTime>other.__creationTime: return -1
                 if self.__creationTime==other.__creationTime: return 0
-                if self.__creationTime<other.__creationTime: return -1
-            if self.__prio<other.__prio: return -1
-            if self.__prio>other.__prio: return 1
+                if self.__creationTime<other.__creationTime: return 1
+            if self.__prio<other.__prio: return 1
+            if self.__prio>other.__prio: return -1
         else:
             return -2
     
