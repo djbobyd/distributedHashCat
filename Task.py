@@ -130,7 +130,7 @@ class Task(object):
         return "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s"%(self.__exec,self.__prio,self.__imei,self.__hash,self.__taskID,self.__code,self.__outFile,creationTime,startTime,completionTime,self.__status,self.__progress,self.__jobList)
     
     def __calculateStart(self,percent):
-        return percent*1000000000
+        return percent*pow(10, 13)
     
     def getTaskID(self):
         return self.__taskID
@@ -178,7 +178,7 @@ class Task(object):
         self.__progress=float(progress)
     
     def __calculateEnd(self,percent):
-        return percent*10000000000000
+        return percent*pow(10,13)
     
     def createCommandList(self):
         cmdList=[]
