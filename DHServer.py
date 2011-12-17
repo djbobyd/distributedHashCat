@@ -157,6 +157,7 @@ def reset():
 
 routes = [
     (r'POST /job', job),
+    (r'POST /deljob', deljob),
     (r'POST /progress', progress),
     (r'GET /stoptasks', stoptasks),
     (r'GET /starttasks', starttasks),
