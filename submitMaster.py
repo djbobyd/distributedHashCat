@@ -35,9 +35,9 @@ class SubmitMaster(Thread):
         self.__JD=None
     
     def run(self):
-        # Load initial queue from DB on start
-        self._loadQueue()
         while not self.__quit:
+            # Load initial queue from DB on start
+            self._loadQueue()
             log.debug("Queue is %s and Status is %s"%(self.pq.empty(), self.__stopProcessing)) 
             if not self.pq.empty() and not self.__stopProcessing:
                 task=self.pq.get()
@@ -85,7 +85,7 @@ class SubmitMaster(Thread):
             if task.getStatus()==States.Running:
                 return False
             db.delTaskByID(imei, hash)
-            self._loadQueue()
+            db.close()
             return True
         return False
     
