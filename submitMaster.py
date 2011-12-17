@@ -29,7 +29,7 @@ class SubmitMaster(Thread):
     
     def __init__(self):
         Thread.__init__(self)
-        self.pq=PriorityQueue(100)
+        self.pq=None
         self.__stopProcessing=False
         self.__quit=False
         self.__JD=None
@@ -55,6 +55,7 @@ class SubmitMaster(Thread):
             time.sleep(5)
     
     def _loadQueue(self):
+        self.pq=PriorityQueue(100)
         log.debug("Start loading queue")
         db=DB()
         db.connect()
@@ -84,11 +85,7 @@ class SubmitMaster(Thread):
             if task.getStatus()==States.Running:
                 return False
             db.delTaskByID(imei, hash)
-            try:
-                self.pq.get(block=False)
-            except:
-                log.debug("Trying to delete non existing hash %s and imei %s"%(hash, imei))
-                return False
+            self._loadQueue()
             return True
         return False
     
