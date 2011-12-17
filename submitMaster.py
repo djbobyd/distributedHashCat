@@ -76,6 +76,22 @@ class SubmitMaster(Thread):
             thread.start_new_thread(self.__realTimeJob,())
         return status
     
+    def dequeueTask(self, imei,hash):
+        db=DB()
+        db.connect()
+        task=db.getTaskByID(imei, hash)
+        if task!=None:
+            if task.getStatus()==States.Running:
+                return False
+            db.delTaskByID(imei, hash)
+            try:
+                self.pq.get(block=False)
+            except:
+                log.debug("Trying to delete non existing hash %s and imei %s"%(hash, imei))
+                return False
+            return True
+        return False
+    
     def __realTimeJob(self):
         isChanged = False
         if not self.__stopProcessing:

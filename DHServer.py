@@ -41,6 +41,34 @@ def starttasks():
         return request.response(('status','Initiated global start!'))
     return locals()
 
+
+@restlite.resource
+def deljob():
+    def POST(request, entity):
+        model.login(request)
+        try:
+            dic=dict(json.loads(json.dumps(entity)))
+            hash=dic["hash"]
+            imei=dic["imei"]
+        except:
+            try:
+                dic=dict(ast.literal_eval(entity))
+                hash=dic["hash"]
+                imei=dic["imei"]
+            except:
+                try:
+                    dic=dict(entity)
+                    hash=dic["hash"]
+                    imei=dic["imei"]
+                except:
+                    log.error("Wrong input format: %s"%entity)
+                    return request.response(('status','False'))
+        if len(imei) != 0 and len(hash) != 0:
+            return request.response(('status',sm.dequeueTask(imei,hash)))
+        else:
+            log.error("one of the mandatory parameters was not present. hash is: %s , imei is: %s"%(hash,imei))
+            return request.response(('status','False'))
+    return locals()
 @restlite.resource
 def job():
     def POST(request, entity):
