@@ -61,7 +61,7 @@ class SubmitMaster(Thread):
         db.connect()
         tasks=db.getAllTasks()
         for task in tasks:
-            if task.getStatus()!= States.Completed:
+            if task.getStatus() not in [States.Completed, States.Failed]:
                 log.debug("Load task "+str(task))
                 self.pq.put(task)
         db.close()
