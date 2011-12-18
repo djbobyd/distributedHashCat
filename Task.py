@@ -95,7 +95,10 @@ class Task(object):
             self.__completionTime=None
         self.__status=getattr(States,text[10].split(".")[1])
         self.__progress=float(text[11])
-        self.__jobList= [int(i) for i in text[12][1:-1].split(",")]
+        try:
+            self.__jobList= [int(i) for i in text[12][1:-1].split(",")]
+        except:
+            self.__jobList= []
         
     
     def __cmp__(self,other):
