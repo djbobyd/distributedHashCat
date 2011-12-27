@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from paramiko.common import timeout
 
 #  Copyright (c) 2005, Corey Goldberg
 #
@@ -17,6 +18,7 @@
 
 
 import time
+from socket import timeout
 from threading import Thread
 from Config import Config
 
@@ -57,7 +59,6 @@ class HashCat(Thread):
         self.interval = int(HashCat.config["heartbeat_timeout"])
         self.be_alive = False
         self.aborted = False
-        self.__channelLostCount=0
 
     def get_command_xcode(self):
         return self.results.get_command_xcode()
@@ -85,7 +86,6 @@ class HashCat(Thread):
         self.quit()
         if self.aborted:
             self.results.set_command_xcode(-500)
-
     
     def run_command(self, command):
         """Run a command on the remote host.
@@ -98,12 +98,17 @@ class HashCat(Thread):
         if self.__ssh == None:
             return False
         self.__chan=self.__ssh.invoke_shell()
+        self.__chan.settimeout(15)
         self.log.debug("sending command: '%s' to host" % command.getCommand())
-        self.__chan.send(command.getCommand()+'\n')
+        try:
+            self.__chan.send(command.getCommand()+'\n')
+        except:
+            self.log.exception("Unable to send Command!!! - %s" % command.getCommand())
+            return False
         time.sleep(int(HashCat.config["init_timeout"]))
         self.be_alive = True
         self.read_proc()
-        return self.__chan.send_ready()
+        return True
     
     
     def ping(self):
@@ -186,11 +191,16 @@ class HashCat(Thread):
         command="echo $?"
         self.write_proc("\b"*10)
         self.log.debug("sending command: '%s' to host" % command)
-        self.__chan.send(command+'\n')
+        try:
+            self.__chan.send(command+'\n')
+        except:
+            self.log.error("Unable to send command!!! - %s" % command)
         while not [True for i in ["=> ","$ ","$ s","# ","# s","ss"] if lines.endswith(i)]:
-            if self.__chan.recv_ready():
+            try:
                 line=self.__chan.recv(9999)
                 lines=lines+''.join(line)
+            except:
+                self.log.error("Cannot obtain exit code line!!!")
         self.log.debug("Exit Code Line: %s" % lines)
         line_arr=lines.splitlines()
         try:
@@ -207,34 +217,26 @@ class HashCat(Thread):
     
     def read_proc(self):
         lines=''
-        count=0
         while not [True for i in ["=> ","$ ","$ s","# ","# s","ss"] if lines.endswith(i)]:
             try:
                 self.log.debug("Channel receive status: %s" % self.__chan.recv_ready())
-                while not self.__chan.recv_ready() and not count >=10:
-                    time.sleep(1)
-                    count+=1 
-                if self.__chan.recv_ready():
-                    line=self.__chan.recv(9999)
-                    lines=lines+''.join(line)
-                else:
-                    self.__channelLostCount+=1
-                    break
-            except (RuntimeError, IOError):
+                line=self.__chan.recv(9999)
+                lines=lines+''.join(line)
+            except (RuntimeError, IOError, timeout):
                 print "Stream not ready!!!"
-        if self.__channelLostCount>=10:
-            self.be_alive=False
-            self.results.set_command_xcode(-100)
-            self.results.set_status('Aborted')
-            return
+                self.be_alive=False
+                self.results.set_command_xcode(-100)
+                self.results.set_status('Aborted')
+                return
         self.parse(lines)
         
     def write_proc(self, message):
-        if self.__chan.send_ready():
+        try:
             self.log.debug("Sending message: %s through the channel..." % message)
             self.__chan.send(message)
             return True
-        else:
+        except:
+            self.log.exception("Sending message %s failed!!!" % message)
             return False
     
     def quit(self):

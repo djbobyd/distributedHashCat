@@ -83,8 +83,8 @@ class Host(object):
         ssh=self.getChannel()
         sftp=ssh.open_sftp()
         try:
-            file=sftp.open(fileName)
-            string=file.readlines()
+            fl=sftp.open(fileName)
+            string=fl.readlines()
             return string
         except IOError:
             self.log.debug("No such file!!!")
