@@ -3,7 +3,7 @@ Created on Sep 4, 2011
 
 @author: boby
 '''
-import os, thread, md5, ast
+import ast
 import restlite
 import sys, json
 from wsgiref.simple_server import make_server
@@ -48,25 +48,25 @@ def deljob():
         model.login(request)
         try:
             dic=dict(json.loads(json.dumps(entity)))
-            hash=dic["hash"]
+            Hash=dic["hash"]
             imei=dic["imei"]
         except:
             try:
                 dic=dict(ast.literal_eval(entity))
-                hash=dic["hash"]
+                Hash=dic["hash"]
                 imei=dic["imei"]
             except:
                 try:
                     dic=dict(entity)
-                    hash=dic["hash"]
+                    Hash=dic["hash"]
                     imei=dic["imei"]
                 except:
                     log.error("Wrong input format: %s"%entity)
                     return request.response(('status','False'))
-        if len(imei) != 0 and len(hash) != 0:
-            return request.response(('status',sm.dequeueTask(imei,hash)))
+        if len(imei) != 0 and len(Hash) != 0:
+            return request.response(('status',sm.dequeueTask(imei,Hash)))
         else:
-            log.error("one of the mandatory parameters was not present. hash is: %s , imei is: %s"%(hash,imei))
+            log.error("one of the mandatory parameters was not present. hash is: %s , imei is: %s"%(Hash,imei))
             return request.response(('status','False'))
     return locals()
 @restlite.resource
@@ -76,27 +76,27 @@ def job():
         try:
             dic=dict(json.loads(json.dumps(entity)))
             priority=dic["priority"]
-            hash=dic["hash"]
+            Hash=dic["hash"]
             imei=dic["imei"]
         except:
             try:
                 dic=dict(ast.literal_eval(entity))
                 priority=dic["priority"]
-                hash=dic["hash"]
+                Hash=dic["hash"]
                 imei=dic["imei"]
             except:
                 try:
                     dic=dict(entity)
                     priority=dic["priority"]
-                    hash=dic["hash"]
+                    Hash=dic["hash"]
                     imei=dic["imei"]
                 except:
                     log.error("Wrong input format: %s"%entity)
                     return request.response(('status','False'))
-        if len(imei) != 0 and len(hash) != 0:
-            return request.response(('status',sm.enqueueTask(imei,hash,priority)))
+        if len(imei) != 0 and len(Hash) != 0:
+            return request.response(('status',sm.enqueueTask(imei,Hash,priority)))
         else:
-            log.error("one of the mandatory parameters was not present. hash is: %s , imei is: %s"%(hash,imei))
+            log.error("one of the mandatory parameters was not present. hash is: %s , imei is: %s"%(Hash,imei))
             return request.response(('status','False'))
     return locals()
 

@@ -139,6 +139,9 @@ class HashCat(Thread):
                     if case('Aborted'):
                         self.be_alive=False
                         break
+                    if case('Exhausted'):
+                        self.be_alive=False
+                        break
                     if case('Initializing'):
                         self.be_alive=True
                         break

@@ -145,9 +145,9 @@ class JobDistributor(Thread):
 
 
     def __getHostfromConfig(self,maxProcess, maxError):
-        list = config["hosts"]
+        lst = config["hosts"]
         pcList=[]
-        for host in list:
+        for host in lst:
             h = Host(host["name"], host["user"], crypto.decrypt(host["pass"]))
             h.setMaxProcess(maxProcess)
             h.setMaxErrors(maxError)
