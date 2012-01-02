@@ -188,6 +188,7 @@ class JobDistributor(Thread):
                     for job in self.__processes[host.getHostName()]:
                         #add to error queue
                         job.terminate()
+                        log.debug("Host %s is dead returning job %s in the queue!"%(host.getHostName(),job.getStatus().get_command()))
                         self.__jobQueue.put(job.getStatus().get_command(),block=False)
         self.__processes=processes
         self.__task.setProgress(self.__calcTaskProgress(self.__task.getJobCount(),self.__calculateProgress()))
