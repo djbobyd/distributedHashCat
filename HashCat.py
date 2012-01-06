@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-from paramiko.common import timeout
-
 #  Copyright (c) 2005, Corey Goldberg
 #
 #  HashCat.py is free software; you can redistribute it and/or modify
@@ -352,7 +350,7 @@ class results(object):
 
         def __init__(self):
             self.host = None
-            self.command_xcode=0
+            self.command_xcode=-100
             self.command = ''
             self.__status = ''
             self.progress = 0.0

@@ -71,7 +71,6 @@ class SubmitMaster(Thread):
         db.connect()
         task=Task(imei, hash, priority)
         status=db.addTask(task)
-        if status: self.pq.put(task)
         db.close()
         if priority == Priorities.Critical:
             thread.start_new_thread(self.__realTimeJob,())

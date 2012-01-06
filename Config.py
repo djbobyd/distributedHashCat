@@ -66,7 +66,7 @@ class Config(object):
     
     @classmethod
     def getConfig(cls):
-        return cls.__Configuration
+        return cls.__Configuration.getConfig()
     
     @classmethod
     def reloadConfig(cls):
