@@ -235,10 +235,8 @@ class HashCat(Thread):
                         break
                     if x==15: raise Exception()
             except:
-                print "Stream not ready!!!"
+                self.log.exception("Stream not ready!!!")
                 self.be_alive=False
-                self.results.set_command_xcode(-100)
-                self.results.set_status('Aborted')
                 return
         self.parse(lines)
         
