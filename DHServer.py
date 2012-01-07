@@ -29,6 +29,7 @@ model.register('hashcat', 'localhost', crypto.decrypt(config['serverPass']))
 def stoptasks():
     def GET(request):
         model.login(request)
+        log.info("stop tasks")
         sm.stopTaskProcessing()
         return request.response(('status','Initiated global stop!'))
     return locals()
@@ -37,6 +38,7 @@ def stoptasks():
 def starttasks():
     def GET(request):
         model.login(request)
+        log.info("start tasks")
         sm.startTaskProcessing()
         return request.response(('status','Initiated global start!'))
     return locals()
@@ -45,6 +47,7 @@ def starttasks():
 def reloadconfig():
     def GET(request):
         model.login(request)
+        log.info("configuration reloaded")
         Config.reloadConfig()
         return request.response(('status','Initiated configuration reload!'))
     return locals()
@@ -53,6 +56,7 @@ def reloadconfig():
 def deljob():
     def POST(request, entity):
         model.login(request)
+        log.info("delete job")
         try:
             dic=dict(json.loads(json.dumps(entity)))
             Hash=dic["hash"]
@@ -80,6 +84,7 @@ def deljob():
 def job():
     def POST(request, entity):
         model.login(request)
+        log.info("add job")
         try:
             dic=dict(json.loads(json.dumps(entity)))
             priority=dic["priority"]
@@ -111,6 +116,7 @@ def job():
 def progress():
     def POST(request, entity):
         model.login(request)
+        log.info("post status")
         try:
             dic=dict(json.loads(json.dumps(entity)))
         except:
@@ -125,6 +131,7 @@ def progress():
         return request.response(('progress',sm.getTasks(dic["progress"])))
     def GET(request):
         model.login(request)
+        log.info("get status")
         return request.response(('progress',sm.getTasks()))
     return locals()
 
@@ -132,6 +139,7 @@ def progress():
 def delete():
     def POST(request,entity):
         model.login(request)
+        log.info("Delete hash")
         try:
             dic=dict(json.loads(json.dumps(entity)))
         except:
@@ -157,6 +165,7 @@ def status():
 def reset():
     def GET(request):
         model.login(request)
+        log.info("Host errors reset")
         return request.response(('Hosts errors reset status',sm.hostReset()))
     return locals()
 
