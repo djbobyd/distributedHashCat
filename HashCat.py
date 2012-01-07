@@ -96,7 +96,8 @@ class HashCat(Thread):
         if self.__ssh == None:
             return False
         self.__chan=self.__ssh.invoke_shell()
-        self.__chan.settimeout(15)
+        self.__chan.settimeout(15.0)
+        self.__chan.setblocking(1)
         self.log.debug("sending command: '%s' to host" % command.getCommand())
         try:
             self.__chan.send(command.getCommand()+'\n')
@@ -198,8 +199,13 @@ class HashCat(Thread):
             self.log.error("Unable to send command!!! - %s" % command)
         while not [True for i in ["=> ","$ ","$ s","# ","# s","ss"] if lines.endswith(i)]:
             try:
-                line=self.__chan.recv(9999)
-                lines=lines+''.join(line)
+                for x in range(1,16):
+                    time.sleep(1)
+                    if self.__chan.recv_ready():
+                        line=self.__chan.recv(9999)
+                        lines=lines+''.join(line)
+                        break
+                    if x==15: raise Exception()
             except:
                 self.log.error("Cannot obtain exit code line!!!")
         self.log.debug("Exit Code Line: %s" % lines)
@@ -221,9 +227,14 @@ class HashCat(Thread):
         while not [True for i in ["=> ","$ ","$ s","# ","# s","ss"] if lines.endswith(i)]:
             try:
                 self.log.debug("Channel receive status: %s" % self.__chan.recv_ready())
-                line=self.__chan.recv(9999)
-                lines=lines+''.join(line)
-            except (RuntimeError, IOError, timeout):
+                for x in range(1,16):
+                    time.sleep(1)
+                    if self.__chan.recv_ready():
+                        line=self.__chan.recv(9999)
+                        lines=lines+''.join(line)
+                        break
+                    if x==15: raise Exception()
+            except:
                 print "Stream not ready!!!"
                 self.be_alive=False
                 self.results.set_command_xcode(-100)

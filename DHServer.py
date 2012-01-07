@@ -41,6 +41,13 @@ def starttasks():
         return request.response(('status','Initiated global start!'))
     return locals()
 
+@restlite.resource
+def reloadconfig():
+    def GET(request):
+        model.login(request)
+        Config.reloadConfig()
+        return request.response(('status','Initiated configuration reload!'))
+    return locals()
 
 @restlite.resource
 def deljob():
@@ -162,6 +169,7 @@ routes = [
     (r'GET /stoptasks', stoptasks),
     (r'GET /starttasks', starttasks),
     (r'GET /progress', progress),
+    (r'GET /reloadconfig', reloadconfig),
     (r'GET /status', status),
     (r'POST /delete', delete),
     (r'GET /reset', reset)

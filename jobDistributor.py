@@ -101,7 +101,7 @@ class JobDistributor(Thread):
             self.__jobQueue.put(command, block=False)
         self.__task.setStatus(States.Running)
         while not self.__jobQueue.empty() and self.__status not in [States.Completed, States.Aborted]:
-            log.debug("JD.run - jobQ %s and status %s"%(self.__jobQueue.empty(),self.__status))
+            log.debug("JD.run - jobQ %s and status %s"%(self.__jobQueue.qsize(),self.__status))
             self.distribute(self.__jobQueue.get(block=False))
         while len(self)!=0:
             log.debug("JD.run end - len is %s"%len(self))
