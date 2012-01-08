@@ -49,7 +49,8 @@ class SubmitMaster(Thread):
                     execute("start")                # Start bitcoins if there is no hash to brake
                 while (self.__stopProcessing or self.pq.empty()) and  not self.__quit:
                     log.debug("Waiting for a task, or start of the execution...")
-                    time.sleep(5)               # Sleep untill 
+                    self._loadQueue()
+                    time.sleep(30)               # Sleep untill 
                 if config["executeBitCoin"]:
                     execute("stop")                 # Stop bitcoins and continue with hash tasks
             time.sleep(5)
