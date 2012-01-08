@@ -80,10 +80,10 @@ class HashCat(Thread):
     def run(self):
         if self.run_command(self.results.get_command()):
             self.ping()
-            self.stop_proc()
-        self.quit()
         if self.aborted:
+            self.stop_proc()
             self.results.set_command_xcode(-500)
+        self.quit()
     
     def run_command(self, command):
         """Run a command on the remote host.
