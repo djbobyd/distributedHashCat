@@ -57,10 +57,13 @@ class Host(object):
             self.__status=Host.States.Down
             timechange=datetime.now()+relativedelta(seconds=300)
             job = self.__sched.add_date_job(self.__resetDown, timechange)
+            
             return False
     
     def __resetDown(self):
         self.__status=Host.States.NotAvailable
+        self.__processes = 0
+        self.__errors = 0
     
     def __getSSH(self):
         ssh = paramiko.SSHClient()
