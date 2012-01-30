@@ -18,12 +18,13 @@ from Task import States
 from threading import Thread
 
 
-log = Config().getLogger('distributor')
+
 config = Config().getConfig()
 crypto = Encryption()
 
 class Job(object):
     def __init__(self, host,command):
+        self.log = Config().getLogger('distributor.'+host.getHostName(),host)
         self.startTime = time.ctime()
         self.endTime = None
         self.__status=None
@@ -34,6 +35,7 @@ class Job(object):
         if self.__host.addProcess():
             self.HC.start()
         else:
+            self.log.debug("could not add process")
             self.__status.set_command_xcode(-1000)
 
     def __str__(self):
@@ -45,19 +47,22 @@ class Job(object):
         self.poll()
 
     def poll(self):
-        log.debug("Job status is: %s"%self.HC.isAlive())
+        self.log.debug("Job status is: %s"%self.HC.isAlive())
         if not self.HC.isAlive() or self.HC.isAborted():
-            log.debug("Waiting for thread to finish...")
+            self.log.debug("Waiting for thread to finish...")
             self.HC.join(300.0)
             self.endTime=time.ctime()
             self.__host.delProcess()
             if self.__status.get_command_xcode()!=0:
                 if self.__status.get_command_xcode()!=-500:
+                    self.log.debug("exit code is not 0 and -500")
                     self.__host.addError()
             else:
                 self.__host.resetErrors()
             return False
         elif self.__status.get_command_xcode()==-1000:
+            self.log.debug("return status -1000")
+            self.endTime=time.ctime()
             self.__host.addError()
             return False
         else:
@@ -69,8 +74,10 @@ class Job(object):
 
 class JobDistributor(Thread):
     
+    
     def __init__(self,task):
         Thread.__init__(self)
+        self.log = Config().getLogger('distributor')
         self.__maxJobs = config["hostJobs"]
         self.__maxErrors = config["hostErrors"]
         self.totalJobs = 0
@@ -89,22 +96,22 @@ class JobDistributor(Thread):
         self.__task.setStatus(States.Aborted)
         self.__stopAll()
     def __stopAll(self):
-        log.debug("Terminating all jobs, please standby ...")
+        self.log.debug("Terminating all jobs, please standby ...")
         for host in self.__processes:
                 for job in self.__processes[host]:
                     job.terminate()
 
     def run(self):
         commands=self.__task.createCommandList()
-        log.debug("Adding commands to queue...")
+        self.log.debug("Adding commands to queue...")
         for command in commands:
             self.__jobQueue.put(command, block=False)
         self.__task.setStatus(States.Running)
         while not self.__jobQueue.empty() and self.__status not in [States.Completed, States.Aborted]:
-            log.debug("JD.run - jobQ %s and status %s"%(self.__jobQueue.qsize(),self.__status))
+            self.log.debug("JD.run - jobQ %s and status %s"%(self.__jobQueue.qsize(),self.__status))
             self.distribute(self.__jobQueue.get(block=False))
         while len(self)!=0:
-            log.debug("JD.run end - len is %s"%len(self))
+            self.log.debug("JD.run end - len is %s"%len(self))
             self.__cleanup()
             time.sleep(config["poll_timeout"])
         if not self.__task.getStatus() in [States.Completed,States.Aborted]:
@@ -117,28 +124,28 @@ class JobDistributor(Thread):
         host=None
         sleepTime=0
         maxSleepTime=config["maxHostWait"]
-        log.info('Searching for host for process %i...' % (procNum))
+        self.log.info('Searching for host for process %i...' % (procNum))
         while host==None and self.__status not in [States.Completed, States.Aborted]:
-            log.debug("Waiting %i seconds for available host!"%sleepTime)
+            self.log.debug("Waiting %i seconds for available host!"%sleepTime)
             time.sleep(sleepTime)
             if sleepTime<maxSleepTime:
                 sleepTime+=10
             host = self.__getHost()   
         if self.__status not in [States.Completed, States.Aborted]:
-            log.info('Host %s chosen for proc %i.' % (host.getHostName(), procNum))
+            self.log.info('Host %s chosen for proc %i.' % (host.getHostName(), procNum))
             self.__processes[host.getHostName()].append(Job(host,command))
-            log.info('Submited to ' + host.getHostName() + ': ' + command.getCommand())
+            self.log.info('Submited to ' + host.getHostName() + ': ' + command.getCommand())
             self.totalJobs += 1
             return True
         return False
 
     def __getHost(self):
         """Find a host among the computer_list whose load is less than maxJobs."""
-        log.info("Finding available host...")
+        self.log.info("Finding available host...")
         self.__cleanup()
         for host in self.__processes:
             hostInfo=self.__getHostfromList(host)
-            log.debug("Checking host %s" % hostInfo.getHostName())
+            self.log.debug("Checking host %s" % hostInfo.getHostName())
             if hostInfo.getStatus() in [Host.States.Available, Host.States.Running]:
                 return hostInfo
         return None     
@@ -151,36 +158,41 @@ class JobDistributor(Thread):
             h = Host(host["name"], host["user"], crypto.decrypt(host["pass"]))
             h.setMaxProcess(maxProcess)
             h.setMaxErrors(maxError)
-            log.debug("Host %s extracted from config file." % h.getHostName())
+            self.log.debug("Host %s extracted from config file." % h.getHostName())
             pcList.append(h)
-        log.debug("Total number of hosts is: %i" % len(pcList))
+        self.log.debug("Total number of hosts is: %i" % len(pcList))
         return pcList
 
     def __cleanup(self):
         processes={}
         for host in self.computer_list:
             if host.checkHost() and host.getStatus() != Host.States.Error: #host is alive
+                self.log.debug("Host %s has status %s"%(host.getHostName(),host.getStatus()))
                 if host.getStatus() in (Host.States.Running, Host.States.Full): # host is working
                         if self.__processes.has_key(host.getHostName()): #current process list contains this host
                             jobs=[]
                             for job in self.__processes[host.getHostName()]:
                                 if job.poll(): # process is still working
+                                    
                                     jobs.append(job) 
                                 else: #process is done
                                     if job.getStatus().get_status() == "Cracked": # check for crack code
+                                        self.log.debug("status is Cracked")
                                         self.__status = States.Completed
                                         self.__task.setStatus(States.Completed)
                                         self.__task.setCode(job.getStatus().get_crackCode())
                                         self.__stopAll()
                                         break
                                     if job.getStatus().get_command_xcode()!=0:  # check for errors
+                                        self.log.debug("exit code is %s"%job.getStatus().get_command_xcode())
                                         self.__jobQueue.put(job.getStatus().get_command(),block=False)
                                         continue
                                     if not self.__status==States.Aborted: # remove completed from task
+                                        self.log.debug("removing job %s from queue"%job.getStatus().get_command().getID())
                                         self.__task.delJobID(job.getStatus().get_command().getID())
                             processes[host.getHostName()]=jobs
                         else:
-                            log.error("Something is very wrong!!! There are hosts with assigned tasks that are not in the current jobs list.")
+                            self.log.error("Something is very wrong!!! There are hosts with assigned tasks that are not in the current jobs list.")
                 else: # host is idle, add empty proc list
                     processes[host.getHostName()]=[]
             else:  # host is error, or dead
@@ -188,7 +200,7 @@ class JobDistributor(Thread):
                     for job in self.__processes[host.getHostName()]:
                         #add to error queue
                         job.terminate()
-                        log.debug("Host %s is dead returning job %s in the queue!"%(host.getHostName(),job.getStatus().get_command()))
+                        self.log.debug("Host %s is dead returning job %s in the queue!"%(host.getHostName(),job.getStatus().get_command()))
                         self.__jobQueue.put(job.getStatus().get_command(),block=False)
         self.__processes=processes
         self.__task.setProgress(self.__calcTaskProgress(self.__task.getJobCount(),self.__calculateProgress()))
@@ -205,7 +217,7 @@ class JobDistributor(Thread):
     
     def __calcTaskProgress(self,jCount,fraction):
         answer=100 - jCount + fraction 
-        log.debug("progress part is: %f"%answer)
+        self.log.debug("progress part is: %f"%answer)
         return answer
     
     def __calculateProgress(self):

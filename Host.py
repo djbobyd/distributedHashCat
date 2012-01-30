@@ -50,6 +50,7 @@ class Host(object):
             s.shutdown(2)
             self.log.debug("Host is alive and running!")
             if self.__status==Host.States.NotAvailable:
+                self.log.debug("Setting host as available!")
                 self.__status=Host.States.Available
             return True
         except:
